@@ -15,12 +15,13 @@ import (
 	. "github.com/paketo-buildpacks/occam/matchers"
 )
 
-func testDefault(t *testing.T, context spec.G, it spec.S) {
+func testCustomStartCmd(t *testing.T, context spec.G, it spec.S) {
 	var (
 		Expect     = NewWithT(t).Expect
 		Eventually = NewWithT(t).Eventually
-		pack       occam.Pack
-		docker     occam.Docker
+
+		pack   occam.Pack
+		docker occam.Docker
 	)
 
 	it.Before(func() {
@@ -32,8 +33,9 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 		var (
 			image     occam.Image
 			container occam.Container
-			name      string
-			source    string
+
+			name   string
+			source string
 		)
 
 		it.Before(func() {
@@ -49,14 +51,13 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 			Expect(os.RemoveAll(source)).To(Succeed())
 		})
 
-		it("builds a working OCI image for the default app", func() {
+		it("builds a working OCI image and runs given start cmd", func() {
 			var err error
-			source, err = occam.Source(filepath.Join("testdata", "default_app"))
+			source, err = occam.Source(filepath.Join("testdata", "custom_start_cmd_app"))
 			Expect(err).NotTo(HaveOccurred())
 
 			var logs fmt.Stringer
 			image, logs, err = pack.WithNoColor().Build.
-				WithNoPull().
 				WithBuildpacks(
 					nodeBuildpack,
 					yarnBuildpack,
@@ -64,6 +65,7 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 					tiniBuildpack,
 					buildpack,
 				).
+				WithNoPull().
 				Execute(name, source)
 			Expect(err).NotTo(HaveOccurred(), logs.String())
 
@@ -71,12 +73,6 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(container).Should(BeAvailable())
-
-			Expect(logs).To(ContainLines(
-				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, buildpackInfo.Buildpack.Name)),
-				"  Writing start command",
-				`    tini -g -- yarn start`,
-			))
 
 			response, err := http.Get(fmt.Sprintf("http://localhost:%s", container.HostPort()))
 			Expect(err).NotTo(HaveOccurred())
@@ -87,6 +83,14 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 			content, err := ioutil.ReadAll(response.Body)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(content)).To(ContainSubstring("Hello, World!"))
+
+			cLogs := func() fmt.Stringer {
+				containerLogs, err := docker.Container.Logs.Execute(container.ID)
+				Expect(err).NotTo(HaveOccurred())
+				return containerLogs
+			}
+
+			Eventually(cLogs).Should(ContainSubstring("This is the start command"))
 		})
 	})
 }

@@ -1,11 +1,13 @@
 package yarnstart_test
 
 import (
-	"testing"
+	"bytes"
 	"io/ioutil"
 	"os"
+	"testing"
 
 	"github.com/paketo-buildpacks/packit"
+	"github.com/paketo-buildpacks/packit/scribe"
 	yarnstart "github.com/paketo-buildpacks/yarn-start"
 	"github.com/sclevine/spec"
 
@@ -19,6 +21,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		layersDir  string
 		workingDir string
 		cnbDir     string
+		buffer     *bytes.Buffer
 
 		build packit.BuildFunc
 	)
@@ -34,7 +37,10 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		workingDir, err = ioutil.TempDir("", "working-dir")
 		Expect(err).NotTo(HaveOccurred())
 
-		build = yarnstart.Build()
+		buffer = bytes.NewBuffer(nil)
+		logger := scribe.NewLogger(buffer)
+
+		build = yarnstart.Build(logger)
 	})
 
 	it.After(func() {
@@ -61,10 +67,14 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 		Expect(result).To(Equal(packit.BuildResult{
 			Plan: packit.BuildpackPlan{
-				Entries: nil,
+				Entries: []packit.BuildpackPlanEntry{},
 			},
-			Layers: nil,
+			Processes: []packit.Process{
+				{
+					Type:    "web",
+					Command: "tini -g -- yarn start",
+				},
+			},
 		}))
-
 	})
 }
