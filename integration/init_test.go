@@ -15,10 +15,11 @@ import (
 )
 
 var (
-	buildpack     string
-	nodeBuildpack string
-	tiniBuildpack string
-	yarnBuildpack string
+	buildpack            string
+	nodeBuildpack        string
+	tiniBuildpack        string
+	yarnBuildpack        string
+	yarnInstallBuildpack string
 
 	buildpackInfo struct {
 		Buildpack struct {
@@ -28,9 +29,10 @@ var (
 	}
 
 	config struct {
-		NodeEngine string `json:"node-engine"`
-		Yarn       string `json:"yarn"`
-		Tini       string `json:"tini"`
+		NodeEngine  string `json:"node-engine"`
+		Yarn        string `json:"yarn"`
+		YarnInstall string `json:"yarn-install"`
+		Tini        string `json:"tini"`
 	}
 )
 
@@ -69,6 +71,10 @@ func TestIntegration(t *testing.T) {
 
 	yarnBuildpack, err = buildpackStore.Get.
 		Execute(config.Yarn)
+	Expect(err).NotTo(HaveOccurred())
+
+	yarnInstallBuildpack, err = buildpackStore.Get.
+		Execute(config.YarnInstall)
 	Expect(err).NotTo(HaveOccurred())
 
 	tiniBuildpack, err = buildpackStore.Get.

@@ -2,6 +2,8 @@ package integration_test
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
@@ -59,6 +61,7 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 					buildpack,
 					nodeBuildpack,
 					yarnBuildpack,
+					yarnInstallBuildpack,
 					tiniBuildpack,
 				).
 				Execute(name, source)
@@ -69,11 +72,21 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 
 			Eventually(container).Should(BeAvailable())
 
-			Expect(logs).To(ContainLines(
-				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, buildpackInfo.Buildpack.Name)),
-				"  Executing build process",
-				MatchRegexp(`      Completed in ([0-9]*(\.[0-9]*)?[a-z]+)+`),
-			))
+			// Expect(logs).To(ContainLines(
+			// 	MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, buildpackInfo.Buildpack.Name)),
+			// 	"  Writing start command",
+			// 	`    tini -g -- yarn start`,
+			// ))
+
+			response, err := http.Get(fmt.Sprintf("http://localhost:%s", container.HostPort()))
+			Expect(err).NotTo(HaveOccurred())
+			defer response.Body.Close()
+
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+
+			content, err := ioutil.ReadAll(response.Body)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(content)).To(ContainSubstring("Hello, World!"))
 		})
 	})
 }
