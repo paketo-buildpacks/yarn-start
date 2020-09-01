@@ -1,6 +1,6 @@
 # Yarn Start Cloud Native Buildpack
 
-## `gcr.io/paketo-community/yarn-install`
+## `gcr.io/paketo-buildpacks/yarn-start`
 
 The Yarn Start CNB sets the start command for the given application.
 
