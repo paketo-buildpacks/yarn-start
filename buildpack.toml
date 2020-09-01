@@ -2,7 +2,7 @@ api = "0.2"
 
 [buildpack]
   id = "paketo-buildpacks/yarn-start"
-  name = "Yarn-Start Buildpack"
+  name = "Paketo Yarn Start Buildpack"
 
 [[stacks]]
   id = "io.buildpacks.stacks.bionic"
