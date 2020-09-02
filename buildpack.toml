@@ -3,6 +3,7 @@ api = "0.2"
 [buildpack]
   id = "paketo-buildpacks/yarn-start"
   name = "Paketo Yarn Start Buildpack"
+  homepage = "https://github.com/paketo-buildpacks/yarn-start"
 
 [[stacks]]
   id = "io.buildpacks.stacks.bionic"
