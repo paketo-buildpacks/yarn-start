@@ -76,6 +76,7 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, buildpackInfo.Buildpack.Name)),
 				"  Writing start command",
 				`    tini -g -- yarn start`,
+				"",
 			))
 
 			response, err := http.Get(fmt.Sprintf("http://localhost:%s", container.HostPort()))
