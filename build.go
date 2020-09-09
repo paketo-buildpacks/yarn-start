@@ -13,6 +13,8 @@ func Build(logger scribe.Logger) packit.BuildFunc {
 		command := "tini -g -- yarn start"
 		logger.Subprocess(command)
 
+		logger.Break()
+
 		return packit.BuildResult{
 			Plan: packit.BuildpackPlan{
 				Entries: []packit.BuildpackPlanEntry{},
