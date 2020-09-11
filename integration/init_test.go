@@ -14,33 +14,34 @@ import (
 	"github.com/sclevine/spec/report"
 )
 
-var (
-	buildpack            string
-	nodeBuildpack        string
-	tiniBuildpack        string
-	yarnBuildpack        string
-	yarnInstallBuildpack string
-
-	buildpackInfo struct {
-		Buildpack struct {
-			ID   string
-			Name string
+var settings struct {
+	Buildpacks struct {
+		NodeEngine struct {
+			Online string
+		}
+		Yarn struct {
+			Online string
+		}
+		YarnInstall struct {
+			Online string
+		}
+		YarnStart struct {
+			Online string
 		}
 	}
-
-	config struct {
+	Buildpack struct {
+		ID   string
+		Name string
+	}
+	Config struct {
 		NodeEngine  string `json:"node-engine"`
 		Yarn        string `json:"yarn"`
 		YarnInstall string `json:"yarn-install"`
-		Tini        string `json:"tini"`
 	}
-)
+}
 
 func TestIntegration(t *testing.T) {
-	var (
-		Expect = NewWithT(t).Expect
-		err    error
-	)
+	Expect := NewWithT(t).Expect
 
 	root, err := filepath.Abs("./..")
 	Expect(err).ToNot(HaveOccurred())
@@ -48,37 +49,33 @@ func TestIntegration(t *testing.T) {
 	file, err := os.Open("../buildpack.toml")
 	Expect(err).NotTo(HaveOccurred())
 
-	_, err = toml.DecodeReader(file, &buildpackInfo)
+	_, err = toml.DecodeReader(file, &settings.Buildpack)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(file.Close()).To(Succeed())
 
 	file, err = os.Open("../integration.json")
 	Expect(err).NotTo(HaveOccurred())
 
-	Expect(json.NewDecoder(file).Decode(&config)).To(Succeed())
+	Expect(json.NewDecoder(file).Decode(&settings.Config)).To(Succeed())
 	Expect(file.Close()).To(Succeed())
 
 	buildpackStore := occam.NewBuildpackStore()
 
-	buildpack, err = buildpackStore.Get.
+	settings.Buildpacks.YarnStart.Online, err = buildpackStore.Get.
 		WithVersion("1.2.3").
 		Execute(root)
 	Expect(err).NotTo(HaveOccurred())
 
-	nodeBuildpack, err = buildpackStore.Get.
-		Execute(config.NodeEngine)
+	settings.Buildpacks.NodeEngine.Online, err = buildpackStore.Get.
+		Execute(settings.Config.NodeEngine)
 	Expect(err).NotTo(HaveOccurred())
 
-	yarnBuildpack, err = buildpackStore.Get.
-		Execute(config.Yarn)
+	settings.Buildpacks.Yarn.Online, err = buildpackStore.Get.
+		Execute(settings.Config.Yarn)
 	Expect(err).NotTo(HaveOccurred())
 
-	yarnInstallBuildpack, err = buildpackStore.Get.
-		Execute(config.YarnInstall)
-	Expect(err).NotTo(HaveOccurred())
-
-	tiniBuildpack, err = buildpackStore.Get.
-		Execute(config.Tini)
+	settings.Buildpacks.YarnInstall.Online, err = buildpackStore.Get.
+		Execute(settings.Config.YarnInstall)
 	Expect(err).NotTo(HaveOccurred())
 
 	SetDefaultEventuallyTimeout(5 * time.Second)

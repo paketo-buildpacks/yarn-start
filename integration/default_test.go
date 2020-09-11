@@ -58,11 +58,10 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 			image, logs, err = pack.WithNoColor().Build.
 				WithNoPull().
 				WithBuildpacks(
-					nodeBuildpack,
-					yarnBuildpack,
-					yarnInstallBuildpack,
-					tiniBuildpack,
-					buildpack,
+					settings.Buildpacks.NodeEngine.Online,
+					settings.Buildpacks.Yarn.Online,
+					settings.Buildpacks.YarnInstall.Online,
+					settings.Buildpacks.YarnStart.Online,
 				).
 				Execute(name, source)
 			Expect(err).NotTo(HaveOccurred(), logs.String())
@@ -73,9 +72,9 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 			Eventually(container).Should(BeAvailable())
 
 			Expect(logs).To(ContainLines(
-				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, buildpackInfo.Buildpack.Name)),
-				"  Writing start command",
-				`    tini -g -- yarn start`,
+				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
+				"  Assigning launch processes",
+				"    web: node server.js",
 				"",
 			))
 

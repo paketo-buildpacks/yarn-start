@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/paketo-buildpacks/packit"
@@ -35,6 +36,15 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		Expect(err).NotTo(HaveOccurred())
 
 		workingDir, err = ioutil.TempDir("", "working-dir")
+		Expect(err).NotTo(HaveOccurred())
+
+		err = ioutil.WriteFile(filepath.Join(workingDir, "package.json"), []byte(`{
+			"scripts": {
+				"prestart": "some-prestart-command",
+				"start": "some-start-command",
+				"poststart": "some-poststart-command"
+			}
+		}`), 0644)
 		Expect(err).NotTo(HaveOccurred())
 
 		buffer = bytes.NewBuffer(nil)
@@ -72,9 +82,132 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			Processes: []packit.Process{
 				{
 					Type:    "web",
-					Command: "tini -g -- yarn start",
+					Command: "some-prestart-command && some-start-command && some-poststart-command",
 				},
 			},
 		}))
+	})
+
+	context("when the package.json does not include a prestart command", func() {
+		it.Before(func() {
+			err := ioutil.WriteFile(filepath.Join(workingDir, "package.json"), []byte(`{
+				"scripts": {
+					"start": "some-start-command",
+					"poststart": "some-poststart-command"
+				}
+			}`), 0644)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		it("returns a result with a valid start command", func() {
+			result, err := build(packit.BuildContext{
+				WorkingDir: workingDir,
+				CNBPath:    cnbDir,
+				Stack:      "some-stack",
+				BuildpackInfo: packit.BuildpackInfo{
+					Name:    "Some Buildpack",
+					Version: "some-version",
+				},
+				Plan: packit.BuildpackPlan{
+					Entries: []packit.BuildpackPlanEntry{},
+				},
+				Layers: packit.Layers{Path: layersDir},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(result).To(Equal(packit.BuildResult{
+				Plan: packit.BuildpackPlan{
+					Entries: []packit.BuildpackPlanEntry{},
+				},
+				Processes: []packit.Process{
+					{
+						Type:    "web",
+						Command: "some-start-command && some-poststart-command",
+					},
+				},
+			}))
+		})
+	})
+
+	context("when the package.json does not include a poststart command", func() {
+		it.Before(func() {
+			err := ioutil.WriteFile(filepath.Join(workingDir, "package.json"), []byte(`{
+				"scripts": {
+					"prestart": "some-prestart-command",
+					"start": "some-start-command"
+				}
+			}`), 0644)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		it("returns a result with a valid start command", func() {
+			result, err := build(packit.BuildContext{
+				WorkingDir: workingDir,
+				CNBPath:    cnbDir,
+				Stack:      "some-stack",
+				BuildpackInfo: packit.BuildpackInfo{
+					Name:    "Some Buildpack",
+					Version: "some-version",
+				},
+				Plan: packit.BuildpackPlan{
+					Entries: []packit.BuildpackPlanEntry{},
+				},
+				Layers: packit.Layers{Path: layersDir},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(result).To(Equal(packit.BuildResult{
+				Plan: packit.BuildpackPlan{
+					Entries: []packit.BuildpackPlanEntry{},
+				},
+				Processes: []packit.Process{
+					{
+						Type:    "web",
+						Command: "some-prestart-command && some-start-command",
+					},
+				},
+			}))
+		})
+	})
+
+	context("when the package.json does not include a start command", func() {
+		it.Before(func() {
+			err := ioutil.WriteFile(filepath.Join(workingDir, "package.json"), []byte(`{
+				"scripts": {
+					"prestart": "some-prestart-command",
+					"poststart": "some-poststart-command"
+				}
+			}`), 0644)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		it("returns a result with a valid start command", func() {
+			result, err := build(packit.BuildContext{
+				WorkingDir: workingDir,
+				CNBPath:    cnbDir,
+				Stack:      "some-stack",
+				BuildpackInfo: packit.BuildpackInfo{
+					Name:    "Some Buildpack",
+					Version: "some-version",
+				},
+				Plan: packit.BuildpackPlan{
+					Entries: []packit.BuildpackPlanEntry{},
+				},
+				Layers: packit.Layers{Path: layersDir},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(result).To(Equal(packit.BuildResult{
+				Plan: packit.BuildpackPlan{
+					Entries: []packit.BuildpackPlanEntry{},
+				},
+				Processes: []packit.Process{
+					{
+						Type:    "web",
+						Command: "some-prestart-command && node server.js && some-poststart-command",
+					},
+				},
+			}))
+		})
 	})
 }

@@ -1,19 +1,21 @@
 {
-  "name": "simple_app",
-  "version": "0.0.0",
-  "description": "some app",
-  "main": "server.js",
-  "scripts": {
-    "start": "echo \"This is the start command\" && node server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "author": "",
-  "license": "MIT",
   "dependencies": {
     "leftpad": "~0.0.1"
   },
+  "description": "some app",
+  "license": "MIT",
+  "main": "server.js",
+  "name": "simple_app",
   "repository": {
     "type": "git",
     "url": ""
-  }
+  },
+  "scripts": {
+    "poststart": "echo \"poststart\"",
+    "prestart": "echo \"prestart\"",
+    "start": "echo \"start\" && node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "version": "0.0.0"
 }
