@@ -59,11 +59,10 @@ func testCustomStartCmd(t *testing.T, context spec.G, it spec.S) {
 			var logs fmt.Stringer
 			image, logs, err = pack.WithNoColor().Build.
 				WithBuildpacks(
-					nodeBuildpack,
-					yarnBuildpack,
-					yarnInstallBuildpack,
-					tiniBuildpack,
-					buildpack,
+					settings.Buildpacks.NodeEngine.Online,
+					settings.Buildpacks.Yarn.Online,
+					settings.Buildpacks.YarnInstall.Online,
+					settings.Buildpacks.YarnStart.Online,
 				).
 				WithNoPull().
 				Execute(name, source)
@@ -73,6 +72,13 @@ func testCustomStartCmd(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(container).Should(BeAvailable())
+
+			Expect(logs).To(ContainLines(
+				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
+				"  Assigning launch processes",
+				`    web: echo "prestart" && echo "start" && node server.js && echo "poststart"`,
+				"",
+			))
 
 			response, err := http.Get(fmt.Sprintf("http://localhost:%s", container.HostPort()))
 			Expect(err).NotTo(HaveOccurred())
@@ -90,7 +96,8 @@ func testCustomStartCmd(t *testing.T, context spec.G, it spec.S) {
 				return containerLogs
 			}
 
-			Eventually(cLogs).Should(ContainSubstring("This is the start command"))
+			Eventually(cLogs).Should(ContainSubstring("prestart"))
+			Eventually(cLogs).Should(ContainSubstring("start"))
 		})
 	})
 }

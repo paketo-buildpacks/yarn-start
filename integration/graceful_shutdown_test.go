@@ -60,11 +60,10 @@ func testGracefulShutdown(t *testing.T, context spec.G, it spec.S) {
 			var logs fmt.Stringer
 			image, logs, err = pack.WithNoColor().Build.
 				WithBuildpacks(
-					nodeBuildpack,
-					yarnBuildpack,
-					yarnInstallBuildpack,
-					tiniBuildpack,
-					buildpack,
+					settings.Buildpacks.NodeEngine.Online,
+					settings.Buildpacks.Yarn.Online,
+					settings.Buildpacks.YarnInstall.Online,
+					settings.Buildpacks.YarnStart.Online,
 				).
 				WithNoPull().
 				Execute(name, source)
@@ -74,6 +73,13 @@ func testGracefulShutdown(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(container).Should(BeAvailable())
+
+			Expect(logs).To(ContainLines(
+				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
+				"  Assigning launch processes",
+				"    web: node server.js",
+				"",
+			))
 
 			response, err := http.Get(fmt.Sprintf("http://localhost:%s", container.HostPort()))
 			Expect(err).NotTo(HaveOccurred())
@@ -93,7 +99,6 @@ func testGracefulShutdown(t *testing.T, context spec.G, it spec.S) {
 				return containerLogs
 			}
 
-			// this works due to tini
 			Eventually(cLogs).Should(ContainSubstring("echo from SIGTERM handler"))
 		})
 	})
