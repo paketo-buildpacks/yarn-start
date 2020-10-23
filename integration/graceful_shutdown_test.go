@@ -65,7 +65,7 @@ func testGracefulShutdown(t *testing.T, context spec.G, it spec.S) {
 					settings.Buildpacks.YarnInstall.Online,
 					settings.Buildpacks.YarnStart.Online,
 				).
-				WithNoPull().
+				WithPullPolicy("never").
 				Execute(name, source)
 			Expect(err).NotTo(HaveOccurred(), logs.String())
 
