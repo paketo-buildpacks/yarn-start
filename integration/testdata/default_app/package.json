@@ -5,7 +5,6 @@
   },
   "description": "some app",
   "license": "MIT",
-  "main": "server.js",
   "name": "simple_app",
   "repository": {
     "type": "git",
