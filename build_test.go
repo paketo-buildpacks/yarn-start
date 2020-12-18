@@ -79,10 +79,12 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			Plan: packit.BuildpackPlan{
 				Entries: []packit.BuildpackPlanEntry{},
 			},
-			Processes: []packit.Process{
-				{
-					Type:    "web",
-					Command: "some-prestart-command && some-start-command && some-poststart-command",
+			Launch: packit.LaunchMetadata{
+				Processes: []packit.Process{
+					{
+						Type:    "web",
+						Command: "some-prestart-command && some-start-command && some-poststart-command",
+					},
 				},
 			},
 		}))
@@ -119,12 +121,13 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 				Plan: packit.BuildpackPlan{
 					Entries: []packit.BuildpackPlanEntry{},
 				},
-				Processes: []packit.Process{
-					{
-						Type:    "web",
-						Command: "some-start-command && some-poststart-command",
-					},
-				},
+				Launch: packit.LaunchMetadata{
+					Processes: []packit.Process{
+						{
+							Type:    "web",
+							Command: "some-start-command && some-poststart-command",
+						},
+					}},
 			}))
 		})
 	})
@@ -160,10 +163,12 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 				Plan: packit.BuildpackPlan{
 					Entries: []packit.BuildpackPlanEntry{},
 				},
-				Processes: []packit.Process{
-					{
-						Type:    "web",
-						Command: "some-prestart-command && some-start-command",
+				Launch: packit.LaunchMetadata{
+					Processes: []packit.Process{
+						{
+							Type:    "web",
+							Command: "some-prestart-command && some-start-command",
+						},
 					},
 				},
 			}))
@@ -201,10 +206,12 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 				Plan: packit.BuildpackPlan{
 					Entries: []packit.BuildpackPlanEntry{},
 				},
-				Processes: []packit.Process{
-					{
-						Type:    "web",
-						Command: "some-prestart-command && node server.js && some-poststart-command",
+				Launch: packit.LaunchMetadata{
+					Processes: []packit.Process{
+						{
+							Type:    "web",
+							Command: "some-prestart-command && node server.js && some-poststart-command",
+						},
 					},
 				},
 			}))
