@@ -10,9 +10,10 @@ import (
 
 func main() {
 	logger := scribe.NewLogger(os.Stdout)
+	projectPathParser := yarnstart.NewProjectPathParser()
 
 	packit.Run(
-		yarnstart.Detect(),
-		yarnstart.Build(logger),
+		yarnstart.Detect(projectPathParser),
+		yarnstart.Build(projectPathParser, logger),
 	)
 }

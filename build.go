@@ -10,7 +10,7 @@ import (
 	"github.com/paketo-buildpacks/packit/scribe"
 )
 
-func Build(logger scribe.Logger) packit.BuildFunc {
+func Build(pathParser PathParser, logger scribe.Logger) packit.BuildFunc {
 	return func(context packit.BuildContext) (packit.BuildResult, error) {
 		logger.Title("%s %s", context.BuildpackInfo.Name, context.BuildpackInfo.Version)
 
@@ -22,14 +22,19 @@ func Build(logger scribe.Logger) packit.BuildFunc {
 			} `json:"scripts"`
 		}
 
-		file, err := os.Open(filepath.Join(context.WorkingDir, "package.json"))
+		projectPath, err := pathParser.Get(context.WorkingDir)
 		if err != nil {
-			panic(err)
+			return packit.BuildResult{}, err
+		}
+
+		file, err := os.Open(filepath.Join(projectPath, "package.json"))
+		if err != nil {
+			return packit.BuildResult{}, fmt.Errorf("Unable to open package.json: %w", err)
 		}
 
 		err = json.NewDecoder(file).Decode(&pkg)
 		if err != nil {
-			panic(err)
+			return packit.BuildResult{}, fmt.Errorf("Unable to decode package.json: %w", err)
 		}
 
 		command := "node server.js"
@@ -46,9 +51,12 @@ func Build(logger scribe.Logger) packit.BuildFunc {
 			command = fmt.Sprintf("%s && %s", command, pkg.Scripts.PostStart)
 		}
 
+		// Ideally we would like the lifecycle to support setting a custom working
+		// directory to run the launch process.  Until that happens we will cd in.
+		command = fmt.Sprintf("cd %s && %s", projectPath, command)
+
 		logger.Process("Assigning launch processes")
 		logger.Subprocess("web: %s", command)
-
 		logger.Break()
 
 		return packit.BuildResult{
