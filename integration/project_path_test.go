@@ -1,13 +1,11 @@
 package integration_test
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/paketo-buildpacks/occam"
@@ -15,15 +13,15 @@ import (
 
 	. "github.com/onsi/gomega"
 	. "github.com/paketo-buildpacks/occam/matchers"
-	"github.com/paketo-buildpacks/packit/pexec"
 )
 
-func testGracefulShutdown(t *testing.T, context spec.G, it spec.S) {
+func testProjectPath(t *testing.T, context spec.G, it spec.S) {
 	var (
 		Expect     = NewWithT(t).Expect
 		Eventually = NewWithT(t).Eventually
-		pack       occam.Pack
-		docker     occam.Docker
+
+		pack   occam.Pack
+		docker occam.Docker
 	)
 
 	it.Before(func() {
@@ -31,12 +29,13 @@ func testGracefulShutdown(t *testing.T, context spec.G, it spec.S) {
 		docker = occam.NewDocker()
 	})
 
-	context("when building an image from an app that has a SIGTERM handler", func() {
+	context("when building an app with a custom project path set", func() {
 		var (
 			image     occam.Image
 			container occam.Container
-			name      string
-			source    string
+
+			name   string
+			source string
 		)
 
 		it.Before(func() {
@@ -52,9 +51,9 @@ func testGracefulShutdown(t *testing.T, context spec.G, it spec.S) {
 			Expect(os.RemoveAll(source)).To(Succeed())
 		})
 
-		it("builds a working OCI image and gracefully shuts down", func() {
+		it("builds a working OCI image and runs given start cmd", func() {
 			var err error
-			source, err = occam.Source(filepath.Join("testdata", "graceful_shutdown_app"))
+			source, err = occam.Source(filepath.Join("testdata", "custom_project_path_app"))
 			Expect(err).NotTo(HaveOccurred())
 
 			var logs fmt.Stringer
@@ -66,6 +65,7 @@ func testGracefulShutdown(t *testing.T, context spec.G, it spec.S) {
 					settings.Buildpacks.YarnStart.Online,
 				).
 				WithPullPolicy("never").
+				WithEnv(map[string]string{"BP_NODE_PROJECT_PATH": "hello_world_server"}).
 				Execute(name, source)
 			Expect(err).NotTo(HaveOccurred(), logs.String())
 
@@ -81,7 +81,7 @@ func testGracefulShutdown(t *testing.T, context spec.G, it spec.S) {
 			Expect(logs).To(ContainLines(
 				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
 				"  Assigning launch processes",
-				"    web: cd /workspace && node server.js",
+				`    web: cd /workspace/hello_world_server && echo "prehello" && echo "starthello" && node server.js && echo "posthello"`,
 				"",
 			))
 
@@ -93,9 +93,7 @@ func testGracefulShutdown(t *testing.T, context spec.G, it spec.S) {
 
 			content, err := ioutil.ReadAll(response.Body)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(string(content)).To(ContainSubstring("Hello, World"))
-
-			Expect(dockerStop(container.ID)).NotTo(HaveOccurred())
+			Expect(string(content)).To(ContainSubstring("Hello, World!"))
 
 			cLogs := func() fmt.Stringer {
 				containerLogs, err := docker.Container.Logs.Execute(container.ID)
@@ -103,21 +101,8 @@ func testGracefulShutdown(t *testing.T, context spec.G, it spec.S) {
 				return containerLogs
 			}
 
-			Eventually(cLogs).Should(ContainSubstring("echo from SIGTERM handler"))
+			Eventually(cLogs).Should(ContainSubstring("prehello"))
+			Eventually(cLogs).Should(ContainSubstring("starthello"))
 		})
 	})
-}
-
-func dockerStop(containerID string) error {
-	stderr := bytes.NewBuffer(nil)
-	exec := pexec.NewExecutable("docker")
-	err := exec.Execute(pexec.Execution{
-		Args:   []string{"container", "stop", containerID},
-		Stderr: stderr,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to stop docker container: %w: %s", err, strings.TrimSpace(stderr.String()))
-	}
-
-	return nil
 }

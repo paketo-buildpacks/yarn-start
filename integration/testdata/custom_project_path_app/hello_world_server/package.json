@@ -1,0 +1,23 @@
+{
+  "name": "simple_app",
+  "version": "0.0.0",
+  "description": "some app",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "leftpad": "~0.0.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "scripts": {
+    "poststart": "echo \"posthello\"",
+    "prestart": "echo \"prehello\"",
+    "start": "echo \"starthello\" && node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

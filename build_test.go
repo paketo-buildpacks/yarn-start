@@ -2,6 +2,8 @@ package yarnstart_test
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -10,6 +12,7 @@ import (
 	"github.com/paketo-buildpacks/packit"
 	"github.com/paketo-buildpacks/packit/scribe"
 	yarnstart "github.com/paketo-buildpacks/yarn-start"
+	"github.com/paketo-buildpacks/yarn-start/fakes"
 	"github.com/sclevine/spec"
 
 	. "github.com/onsi/gomega"
@@ -23,6 +26,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		workingDir string
 		cnbDir     string
 		buffer     *bytes.Buffer
+		pathParser *fakes.PathParser
 
 		build packit.BuildFunc
 	)
@@ -38,7 +42,8 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		workingDir, err = ioutil.TempDir("", "working-dir")
 		Expect(err).NotTo(HaveOccurred())
 
-		err = ioutil.WriteFile(filepath.Join(workingDir, "package.json"), []byte(`{
+		Expect(os.Mkdir(filepath.Join(workingDir, "some-project-dir"), os.ModePerm)).To(Succeed())
+		err = ioutil.WriteFile(filepath.Join(workingDir, "some-project-dir", "package.json"), []byte(`{
 			"scripts": {
 				"prestart": "some-prestart-command",
 				"start": "some-start-command",
@@ -50,7 +55,10 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		buffer = bytes.NewBuffer(nil)
 		logger := scribe.NewLogger(buffer)
 
-		build = yarnstart.Build(logger)
+		pathParser = &fakes.PathParser{}
+
+		pathParser.GetCall.Returns.ProjectPath = filepath.Join(workingDir, "some-project-dir")
+		build = yarnstart.Build(pathParser, logger)
 	})
 
 	it.After(func() {
@@ -83,16 +91,17 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 				Processes: []packit.Process{
 					{
 						Type:    "web",
-						Command: "some-prestart-command && some-start-command && some-poststart-command",
+						Command: fmt.Sprintf("cd %s && some-prestart-command && some-start-command && some-poststart-command", filepath.Join(workingDir, "some-project-dir")),
 					},
 				},
 			},
 		}))
+		Expect(pathParser.GetCall.Receives.Path).To(Equal(workingDir))
 	})
 
 	context("when the package.json does not include a prestart command", func() {
 		it.Before(func() {
-			err := ioutil.WriteFile(filepath.Join(workingDir, "package.json"), []byte(`{
+			err := ioutil.WriteFile(filepath.Join(workingDir, "some-project-dir", "package.json"), []byte(`{
 				"scripts": {
 					"start": "some-start-command",
 					"poststart": "some-poststart-command"
@@ -125,7 +134,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Processes: []packit.Process{
 						{
 							Type:    "web",
-							Command: "some-start-command && some-poststart-command",
+							Command: fmt.Sprintf("cd %s && some-start-command && some-poststart-command", filepath.Join(workingDir, "some-project-dir")),
 						},
 					}},
 			}))
@@ -134,7 +143,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 	context("when the package.json does not include a poststart command", func() {
 		it.Before(func() {
-			err := ioutil.WriteFile(filepath.Join(workingDir, "package.json"), []byte(`{
+			err := ioutil.WriteFile(filepath.Join(workingDir, "some-project-dir", "package.json"), []byte(`{
 				"scripts": {
 					"prestart": "some-prestart-command",
 					"start": "some-start-command"
@@ -167,7 +176,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Processes: []packit.Process{
 						{
 							Type:    "web",
-							Command: "some-prestart-command && some-start-command",
+							Command: fmt.Sprintf("cd %s && some-prestart-command && some-start-command", filepath.Join(workingDir, "some-project-dir")),
 						},
 					},
 				},
@@ -177,7 +186,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 	context("when the package.json does not include a start command", func() {
 		it.Before(func() {
-			err := ioutil.WriteFile(filepath.Join(workingDir, "package.json"), []byte(`{
+			err := ioutil.WriteFile(filepath.Join(workingDir, "some-project-dir", "package.json"), []byte(`{
 				"scripts": {
 					"prestart": "some-prestart-command",
 					"poststart": "some-poststart-command"
@@ -210,11 +219,80 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Processes: []packit.Process{
 						{
 							Type:    "web",
-							Command: "some-prestart-command && node server.js && some-poststart-command",
+							Command: fmt.Sprintf("cd %s && some-prestart-command && node server.js && some-poststart-command", filepath.Join(workingDir, "some-project-dir")),
 						},
 					},
 				},
 			}))
+		})
+	})
+
+	context("failure cases", func() {
+		context("when package.json does not exist", func() {
+			it.Before(func() {
+				Expect(os.RemoveAll(filepath.Join(workingDir, "some-project-dir", "package.json"))).To(Succeed())
+			})
+			it("fails with the appropriate error", func() {
+				_, err := build(packit.BuildContext{
+					WorkingDir: workingDir,
+					CNBPath:    cnbDir,
+					Stack:      "some-stack",
+					BuildpackInfo: packit.BuildpackInfo{
+						Name:    "Some Buildpack",
+						Version: "some-version",
+					},
+					Plan: packit.BuildpackPlan{
+						Entries: []packit.BuildpackPlanEntry{},
+					},
+					Layers: packit.Layers{Path: layersDir},
+				})
+				Expect(err).To(MatchError(ContainSubstring(fmt.Sprintf("Unable to open package.json: open %s", filepath.Join(workingDir, "some-project-dir", "package.json")))))
+			})
+		})
+
+		context("when package.json is malformed", func() {
+			it.Before(func() {
+				Expect(ioutil.WriteFile(filepath.Join(workingDir, "some-project-dir", "package.json"), []byte("%%%"), os.ModePerm)).To(Succeed())
+			})
+			it("fails with the appropriate error", func() {
+				_, err := build(packit.BuildContext{
+					WorkingDir: workingDir,
+					CNBPath:    cnbDir,
+					Stack:      "some-stack",
+					BuildpackInfo: packit.BuildpackInfo{
+						Name:    "Some Buildpack",
+						Version: "some-version",
+					},
+					Plan: packit.BuildpackPlan{
+						Entries: []packit.BuildpackPlanEntry{},
+					},
+					Layers: packit.Layers{Path: layersDir},
+				})
+				Expect(err).To(MatchError(ContainSubstring("Unable to decode package.json: invalid character")))
+			})
+		})
+
+		context("when the path parser returns an error", func() {
+			it.Before(func() {
+				pathParser.GetCall.Returns.Err = errors.New("path-parser-error")
+			})
+
+			it("returns an error", func() {
+				_, err := build(packit.BuildContext{
+					WorkingDir: workingDir,
+					CNBPath:    cnbDir,
+					Stack:      "some-stack",
+					BuildpackInfo: packit.BuildpackInfo{
+						Name:    "Some Buildpack",
+						Version: "some-version",
+					},
+					Plan: packit.BuildpackPlan{
+						Entries: []packit.BuildpackPlanEntry{},
+					},
+					Layers: packit.Layers{Path: layersDir},
+				})
+				Expect(err).To(MatchError("path-parser-error"))
+			})
 		})
 	})
 }

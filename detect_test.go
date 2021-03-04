@@ -1,6 +1,7 @@
 package yarnstart_test
 
 import (
+	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/paketo-buildpacks/packit"
 	yarnstart "github.com/paketo-buildpacks/yarn-start"
+	"github.com/paketo-buildpacks/yarn-start/fakes"
 	"github.com/sclevine/spec"
 
 	. "github.com/onsi/gomega"
@@ -17,16 +19,21 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 	var (
 		Expect = NewWithT(t).Expect
 
-		workingDir string
-		detect     packit.DetectFunc
+		workingDir        string
+		projectPathParser *fakes.PathParser
+		detect            packit.DetectFunc
 	)
 
 	it.Before(func() {
 		var err error
 		workingDir, err = ioutil.TempDir("", "working-dir")
 		Expect(err).NotTo(HaveOccurred())
+		Expect(os.Mkdir(filepath.Join(workingDir, "custom"), os.ModePerm)).To(Succeed())
 
-		detect = yarnstart.Detect()
+		projectPathParser = &fakes.PathParser{}
+		projectPathParser.GetCall.Returns.ProjectPath = filepath.Join(workingDir, "custom")
+
+		detect = yarnstart.Detect(projectPathParser)
 	})
 
 	it.After(func() {
@@ -35,7 +42,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 
 	context("when there is a yarn.lock", func() {
 		it.Before(func() {
-			Expect(ioutil.WriteFile(filepath.Join(workingDir, "yarn.lock"), nil, 0644)).To(Succeed())
+			Expect(ioutil.WriteFile(filepath.Join(workingDir, "custom", "yarn.lock"), nil, 0644)).To(Succeed())
 		})
 		it("detects", func() {
 			result, err := detect(packit.DetectContext{
@@ -58,6 +65,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 					},
 				},
 			}))
+			Expect(projectPathParser.GetCall.Receives.Path).To(Equal(filepath.Join(workingDir)))
 		})
 	})
 
@@ -85,6 +93,19 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 					WorkingDir: workingDir,
 				})
 				Expect(err).To(MatchError(ContainSubstring("failed to stat yarn.lock:")))
+			})
+		})
+
+		context("when the project path cannot be found", func() {
+			it.Before(func() {
+				projectPathParser.GetCall.Returns.Err = errors.New("couldn't find directory")
+			})
+
+			it("returns an error", func() {
+				_, err := detect(packit.DetectContext{
+					WorkingDir: workingDir,
+				})
+				Expect(err).To(MatchError("couldn't find directory"))
 			})
 		})
 	})
