@@ -38,11 +38,6 @@ pack build <app-name> -p <path-to-app> -b <path/to/node-engine.cnb> -b \
 <path/to/yarn.cnb> -b <path/to/yarn-install.cnb> -b build/buildpackage.cnb
 ```
 
-
-## `buildpack.yml` Configurations
-
-There are no extra configurations for this buildpack based on `buildpack.yml`.
-
 ## Graceful shutdown and signal handling
 
 You can add signal handlers in your app to support graceful shutdown and
@@ -52,3 +47,16 @@ signal with the default action. As a result, the process will not terminate on
 `SIGINT` or `SIGTERM` unless it is coded to do so. You can also use docker's
 `--init` flag to wrap your node process with an init system that will properly
 handle signals.
+
+## Specifying a project path
+
+To specify a project subdirectory to be used as the root of the app, please use
+the `BP_NODE_PROJECT_PATH` environment variable at build time either directly
+(ex. `pack build my-app --env BP_NODE_PROJECT_PATH=./src/my-app`) or through a
+[`project.toml`
+file](https://github.com/buildpacks/spec/blob/main/extensions/project-descriptor.md).
+This could be useful if your app is a part of a monorepo.
+
+## `buildpack.yml` Configurations
+
+There are no extra configurations for this buildpack based on `buildpack.yml`.
