@@ -57,7 +57,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 		pathParser = &fakes.PathParser{}
 
-		pathParser.GetCall.Returns.ProjectPath = filepath.Join(workingDir, "some-project-dir")
+		pathParser.GetCall.Returns.ProjectPath = "some-project-dir"
 		build = yarnstart.Build(pathParser, logger)
 	})
 
@@ -91,7 +91,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 				Processes: []packit.Process{
 					{
 						Type:    "web",
-						Command: fmt.Sprintf("cd %s && some-prestart-command && some-start-command && some-poststart-command", filepath.Join(workingDir, "some-project-dir")),
+						Command: "cd some-project-dir && some-prestart-command && some-start-command && some-poststart-command",
 					},
 				},
 			},
@@ -134,7 +134,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Processes: []packit.Process{
 						{
 							Type:    "web",
-							Command: fmt.Sprintf("cd %s && some-start-command && some-poststart-command", filepath.Join(workingDir, "some-project-dir")),
+							Command: "cd some-project-dir && some-start-command && some-poststart-command",
 						},
 					}},
 			}))
@@ -176,7 +176,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Processes: []packit.Process{
 						{
 							Type:    "web",
-							Command: fmt.Sprintf("cd %s && some-prestart-command && some-start-command", filepath.Join(workingDir, "some-project-dir")),
+							Command: "cd some-project-dir && some-prestart-command && some-start-command",
 						},
 					},
 				},
@@ -219,7 +219,56 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Processes: []packit.Process{
 						{
 							Type:    "web",
-							Command: fmt.Sprintf("cd %s && some-prestart-command && node server.js && some-poststart-command", filepath.Join(workingDir, "some-project-dir")),
+							Command: "cd some-project-dir && some-prestart-command && node server.js && some-poststart-command",
+						},
+					},
+				},
+			}))
+		})
+	})
+
+	context("when the project-path env var is not set", func() {
+		it.Before(func() {
+			pathParser.GetCall.Returns.ProjectPath = ""
+			err := ioutil.WriteFile(filepath.Join(workingDir, "package.json"), []byte(`{
+			"scripts": {
+				"prestart": "some-prestart-command",
+				"start": "some-start-command",
+				"poststart": "some-poststart-command"
+			}
+		}`), 0644)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		it.After(func() {
+			Expect(os.Remove(filepath.Join(workingDir, "package.json"))).To(Succeed())
+		})
+
+		it("returns a result with a valid start command", func() {
+			result, err := build(packit.BuildContext{
+				WorkingDir: workingDir,
+				CNBPath:    cnbDir,
+				Stack:      "some-stack",
+				BuildpackInfo: packit.BuildpackInfo{
+					Name:    "Some Buildpack",
+					Version: "some-version",
+				},
+				Plan: packit.BuildpackPlan{
+					Entries: []packit.BuildpackPlanEntry{},
+				},
+				Layers: packit.Layers{Path: layersDir},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(result).To(Equal(packit.BuildResult{
+				Plan: packit.BuildpackPlan{
+					Entries: []packit.BuildpackPlanEntry{},
+				},
+				Launch: packit.LaunchMetadata{
+					Processes: []packit.Process{
+						{
+							Type:    "web",
+							Command: "some-prestart-command && some-start-command && some-poststart-command",
 						},
 					},
 				},

@@ -27,7 +27,7 @@ func Build(pathParser PathParser, logger scribe.Logger) packit.BuildFunc {
 			return packit.BuildResult{}, err
 		}
 
-		file, err := os.Open(filepath.Join(projectPath, "package.json"))
+		file, err := os.Open(filepath.Join(context.WorkingDir, projectPath, "package.json"))
 		if err != nil {
 			return packit.BuildResult{}, fmt.Errorf("Unable to open package.json: %w", err)
 		}
@@ -53,7 +53,9 @@ func Build(pathParser PathParser, logger scribe.Logger) packit.BuildFunc {
 
 		// Ideally we would like the lifecycle to support setting a custom working
 		// directory to run the launch process.  Until that happens we will cd in.
-		command = fmt.Sprintf("cd %s && %s", projectPath, command)
+		if projectPath != "" {
+			command = fmt.Sprintf("cd %s && %s", projectPath, command)
+		}
 
 		logger.Process("Assigning launch processes")
 		logger.Subprocess("web: %s", command)

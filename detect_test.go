@@ -31,7 +31,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 		Expect(os.Mkdir(filepath.Join(workingDir, "custom"), os.ModePerm)).To(Succeed())
 
 		projectPathParser = &fakes.PathParser{}
-		projectPathParser.GetCall.Returns.ProjectPath = filepath.Join(workingDir, "custom")
+		projectPathParser.GetCall.Returns.ProjectPath = "custom"
 
 		detect = yarnstart.Detect(projectPathParser)
 	})
