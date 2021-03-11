@@ -22,17 +22,15 @@ func NewProjectPathParser() ProjectPathParser {
 func (p ProjectPathParser) Get(path string) (string, error) {
 	customProjPath := os.Getenv("BP_NODE_PROJECT_PATH")
 	if customProjPath == "" {
-		return path, nil
+		return "", nil
 	}
 
-	customProjPath = filepath.Clean(customProjPath)
-	path = filepath.Join(path, customProjPath)
-	_, err := os.Stat(path)
+	_, err := os.Stat(filepath.Join(path, customProjPath))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return "", fmt.Errorf("expected value derived from BP_NODE_PROJECT_PATH [%s] to be an existing directory", path)
+			return "", fmt.Errorf("expected value derived from BP_NODE_PROJECT_PATH [%s] to be an existing directory", customProjPath)
 		}
 		return "", err
 	}
-	return path, nil
+	return customProjPath, nil
 }

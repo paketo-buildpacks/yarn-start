@@ -69,6 +69,13 @@ func testProjectPath(t *testing.T, context spec.G, it spec.S) {
 				Execute(name, source)
 			Expect(err).NotTo(HaveOccurred(), logs.String())
 
+			Expect(logs).To(ContainLines(
+				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
+				"  Assigning launch processes",
+				`    web: cd hello_world_server && echo "prehello" && echo "starthello" && node server.js && echo "posthello"`,
+				"",
+			))
+
 			container, err = docker.Container.Run.
 				WithEnv(map[string]string{"PORT": "8080"}).
 				WithPublish("8080").
@@ -77,13 +84,6 @@ func testProjectPath(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(container).Should(BeAvailable())
-
-			Expect(logs).To(ContainLines(
-				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
-				"  Assigning launch processes",
-				`    web: cd /workspace/hello_world_server && echo "prehello" && echo "starthello" && node server.js && echo "posthello"`,
-				"",
-			))
 
 			response, err := http.Get(fmt.Sprintf("http://localhost:%s", container.HostPort("8080")))
 			Expect(err).NotTo(HaveOccurred())

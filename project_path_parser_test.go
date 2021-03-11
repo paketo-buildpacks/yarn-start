@@ -43,7 +43,7 @@ func testProjectPathParser(t *testing.T, context spec.G, it spec.S) {
 		it("returns the set project path", func() {
 			result, err := projectPathParser.Get(workingDir)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result).To(Equal(projectDir))
+			Expect(result).To(Equal(filepath.Join("custom", "path")))
 		})
 	})
 
@@ -74,7 +74,7 @@ func testProjectPathParser(t *testing.T, context spec.G, it spec.S) {
 
 			it("returns an error", func() {
 				_, err := projectPathParser.Get(workingDir)
-				Expect(err).To(MatchError(ContainSubstring(fmt.Sprintf("expected value derived from BP_NODE_PROJECT_PATH [%s] to be an existing directory", filepath.Join(workingDir, "some-garbage")))))
+				Expect(err).To(MatchError(ContainSubstring(fmt.Sprintf("expected value derived from BP_NODE_PROJECT_PATH [%s] to be an existing directory", "some-garbage"))))
 			})
 		})
 

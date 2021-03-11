@@ -20,7 +20,7 @@ func Detect(projectPathParser PathParser) packit.DetectFunc {
 			return packit.DetectResult{}, err
 		}
 
-		_, err = os.Stat(filepath.Join(projectPath, "yarn.lock"))
+		_, err = os.Stat(filepath.Join(context.WorkingDir, projectPath, "yarn.lock"))
 		if err != nil {
 			if os.IsNotExist(err) {
 				return packit.DetectResult{}, packit.Fail
