@@ -38,6 +38,12 @@ func Detect(projectPathParser PathParser) packit.DetectFunc {
 						},
 					},
 					{
+						Name: Yarn,
+						Metadata: map[string]interface{}{
+							"launch": true,
+						},
+					},
+					{
 						Name: NodeModules,
 						Metadata: map[string]interface{}{
 							"launch": true,
