@@ -58,6 +58,12 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 						},
 					},
 					{
+						Name: "yarn",
+						Metadata: map[string]interface{}{
+							"launch": true,
+						},
+					},
+					{
 						Name: "node_modules",
 						Metadata: map[string]interface{}{
 							"launch": true,

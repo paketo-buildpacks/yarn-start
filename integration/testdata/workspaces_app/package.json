@@ -1,0 +1,10 @@
+{
+  "main": "packages/sample-app/index.js",
+  "scripts": {
+    "start": "yarn workspace @sample/sample-app start"
+  },
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ]
+}
