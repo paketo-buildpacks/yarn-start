@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/paketo-buildpacks/packit"
@@ -97,6 +98,53 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			},
 		}))
 		Expect(pathParser.GetCall.Receives.Path).To(Equal(workingDir))
+	})
+
+	context("when BP_LIVE_RELOAD_ENABLED=true in the build environment", func() {
+		it.Before(func() {
+			os.Setenv("BP_LIVE_RELOAD_ENABLED", "true")
+		})
+
+		it.After(func() {
+			os.Unsetenv("BP_LIVE_RELOAD_ENABLED")
+		})
+
+		it("adds a reloadable start command that ignores package manager files and makes it the default", func() {
+			result, err := build(packit.BuildContext{
+				WorkingDir: workingDir,
+				CNBPath:    cnbDir,
+				Stack:      "some-stack",
+				BuildpackInfo: packit.BuildpackInfo{
+					Name:    "Some Buildpack",
+					Version: "some-version",
+				},
+				Plan: packit.BuildpackPlan{
+					Entries: []packit.BuildpackPlanEntry{},
+				},
+				Layers: packit.Layers{Path: layersDir},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(result.Launch.Processes).To(Equal([]packit.Process{
+				{
+					Type: "web",
+					Command: strings.Join([]string{
+						"watchexec",
+						"--restart",
+						fmt.Sprintf("--watch %s/some-project-dir", workingDir),
+						fmt.Sprintf("--ignore %s/some-project-dir/package.json", workingDir),
+						fmt.Sprintf("--ignore %s/some-project-dir/yarn.lock", workingDir),
+						fmt.Sprintf("--ignore %s/some-project-dir/node_modules", workingDir),
+						`"cd some-project-dir && some-prestart-command && some-start-command && some-poststart-command"`,
+					}, " "),
+				},
+				{
+					Type:    "no-reload",
+					Command: "cd some-project-dir && some-prestart-command && some-start-command && some-poststart-command",
+				},
+			}))
+			Expect(pathParser.GetCall.Receives.Path).To(Equal(workingDir))
+		})
 	})
 
 	context("when the package.json does not include a prestart command", func() {
@@ -341,6 +389,33 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Layers: packit.Layers{Path: layersDir},
 				})
 				Expect(err).To(MatchError("path-parser-error"))
+			})
+		})
+
+		context("when BP_LIVE_RELOAD_ENABLED is set to an invalid value", func() {
+			it.Before(func() {
+				os.Setenv("BP_LIVE_RELOAD_ENABLED", "not-a-bool")
+			})
+
+			it.After(func() {
+				os.Unsetenv("BP_LIVE_RELOAD_ENABLED")
+			})
+
+			it("returns an error", func() {
+				_, err := build(packit.BuildContext{
+					WorkingDir: workingDir,
+					CNBPath:    cnbDir,
+					Stack:      "some-stack",
+					BuildpackInfo: packit.BuildpackInfo{
+						Name:    "Some Buildpack",
+						Version: "some-version",
+					},
+					Plan: packit.BuildpackPlan{
+						Entries: []packit.BuildpackPlanEntry{},
+					},
+					Layers: packit.Layers{Path: layersDir},
+				})
+				Expect(err).To(MatchError(ContainSubstring("failed to parse BP_LIVE_RELOAD_ENABLED value not-a-bool")))
 			})
 		})
 	})

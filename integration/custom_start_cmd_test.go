@@ -103,5 +103,65 @@ func testCustomStartCmd(t *testing.T, context spec.G, it spec.S) {
 			Eventually(cLogs).Should(ContainSubstring("prestart"))
 			Eventually(cLogs).Should(ContainSubstring("start"))
 		})
+
+		context("when BP_LIVE_RELOAD_ENABLED=true during the build", func() {
+			it("builds an OCI image that has a reloadable default process and a non-reload process", func() {
+				var err error
+				source, err = occam.Source(filepath.Join("testdata", "custom_start_cmd_app"))
+				Expect(err).NotTo(HaveOccurred())
+
+				var logs fmt.Stringer
+				image, logs, err = pack.WithNoColor().Build.
+					WithBuildpacks(
+						settings.Buildpacks.Watchexec.Online,
+						settings.Buildpacks.NodeEngine.Online,
+						settings.Buildpacks.Yarn.Online,
+						settings.Buildpacks.YarnInstall.Online,
+						settings.Buildpacks.YarnStart.Online,
+					).
+					WithEnv(map[string]string{
+						"BP_LIVE_RELOAD_ENABLED": "true",
+					}).
+					WithPullPolicy("never").
+					Execute(name, source)
+				Expect(err).NotTo(HaveOccurred(), logs.String())
+
+				Expect(logs).To(ContainLines(
+					MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
+					"  Assigning launch processes",
+					`    web: watchexec --restart --watch /workspace --ignore /workspace/package.json --ignore /workspace/yarn.lock --ignore /workspace/node_modules "echo "prestart" && echo "start" && node server.js && echo "poststart""`,
+					`    no-reload: echo "prestart" && echo "start" && node server.js && echo "poststart"`,
+					"",
+				))
+
+				container, err = docker.Container.Run.
+					WithEnv(map[string]string{"PORT": "8080"}).
+					WithPublish("8080").
+					WithPublishAll().
+					Execute(image.ID)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(container).Should(BeAvailable())
+
+				response, err := http.Get(fmt.Sprintf("http://localhost:%s", container.HostPort("8080")))
+				Expect(err).NotTo(HaveOccurred())
+				defer response.Body.Close()
+
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+
+				content, err := ioutil.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(string(content)).To(ContainSubstring("Hello, World!"))
+
+				cLogs := func() fmt.Stringer {
+					containerLogs, err := docker.Container.Logs.Execute(container.ID)
+					Expect(err).NotTo(HaveOccurred())
+					return containerLogs
+				}
+
+				Eventually(cLogs).Should(ContainSubstring("prestart"))
+				Eventually(cLogs).Should(ContainSubstring("start"))
+			})
+		})
 	})
 }

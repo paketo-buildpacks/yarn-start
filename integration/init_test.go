@@ -28,6 +28,9 @@ var settings struct {
 		YarnStart struct {
 			Online string
 		}
+		Watchexec struct {
+			Online string
+		}
 	}
 	Buildpack struct {
 		ID   string
@@ -37,6 +40,7 @@ var settings struct {
 		NodeEngine  string `json:"node-engine"`
 		Yarn        string `json:"yarn"`
 		YarnInstall string `json:"yarn-install"`
+		Watchexec   string `json:"watchexec"`
 	}
 }
 
@@ -76,6 +80,10 @@ func TestIntegration(t *testing.T) {
 
 	settings.Buildpacks.YarnInstall.Online, err = buildpackStore.Get.
 		Execute(settings.Config.YarnInstall)
+	Expect(err).NotTo(HaveOccurred())
+
+	settings.Buildpacks.Watchexec.Online, err = buildpackStore.Get.
+		Execute(settings.Config.Watchexec)
 	Expect(err).NotTo(HaveOccurred())
 
 	SetDefaultEventuallyTimeout(5 * time.Second)
