@@ -1,13 +1,9 @@
 package integration_test
 
 import (
-	"bytes"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/paketo-buildpacks/occam"
@@ -15,7 +11,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	. "github.com/paketo-buildpacks/occam/matchers"
-	"github.com/paketo-buildpacks/packit/pexec"
 )
 
 func testGracefulShutdown(t *testing.T, context spec.G, it spec.S) {
@@ -77,6 +72,7 @@ func testGracefulShutdown(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(container).Should(BeAvailable())
+			Eventually(container).Should(Serve(ContainSubstring("Hello, World")))
 
 			Expect(logs).To(ContainLines(
 				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
@@ -85,39 +81,15 @@ func testGracefulShutdown(t *testing.T, context spec.G, it spec.S) {
 				"",
 			))
 
-			response, err := http.Get(fmt.Sprintf("http://localhost:%s", container.HostPort("8080")))
-			Expect(err).NotTo(HaveOccurred())
-			defer response.Body.Close()
+			Expect(docker.Container.Stop.Execute(container.ID)).To(Succeed())
 
-			Expect(response.StatusCode).To(Equal(http.StatusOK))
-
-			content, err := ioutil.ReadAll(response.Body)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(string(content)).To(ContainSubstring("Hello, World"))
-
-			Expect(dockerStop(container.ID)).NotTo(HaveOccurred())
-
-			cLogs := func() fmt.Stringer {
+			cLogs := func() string {
 				containerLogs, err := docker.Container.Logs.Execute(container.ID)
 				Expect(err).NotTo(HaveOccurred())
-				return containerLogs
+				return containerLogs.String()
 			}
 
 			Eventually(cLogs).Should(ContainSubstring("echo from SIGTERM handler"))
 		})
 	})
-}
-
-func dockerStop(containerID string) error {
-	stderr := bytes.NewBuffer(nil)
-	exec := pexec.NewExecutable("docker")
-	err := exec.Execute(pexec.Execution{
-		Args:   []string{"container", "stop", containerID},
-		Stderr: stderr,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to stop docker container: %w: %s", err, strings.TrimSpace(stderr.String()))
-	}
-
-	return nil
 }
