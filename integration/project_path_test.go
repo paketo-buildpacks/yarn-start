@@ -2,8 +2,6 @@ package integration_test
 
 import (
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
@@ -84,21 +82,12 @@ func testProjectPath(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(container).Should(BeAvailable())
+			Eventually(container).Should(Serve(ContainSubstring("Hello, World!")))
 
-			response, err := http.Get(fmt.Sprintf("http://localhost:%s", container.HostPort("8080")))
-			Expect(err).NotTo(HaveOccurred())
-			defer response.Body.Close()
-
-			Expect(response.StatusCode).To(Equal(http.StatusOK))
-
-			content, err := ioutil.ReadAll(response.Body)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(string(content)).To(ContainSubstring("Hello, World!"))
-
-			cLogs := func() fmt.Stringer {
+			cLogs := func() string {
 				containerLogs, err := docker.Container.Logs.Execute(container.ID)
 				Expect(err).NotTo(HaveOccurred())
-				return containerLogs
+				return containerLogs.String()
 			}
 
 			Eventually(cLogs).Should(ContainSubstring("prehello"))
@@ -144,21 +133,12 @@ func testProjectPath(t *testing.T, context spec.G, it spec.S) {
 				Expect(err).NotTo(HaveOccurred())
 
 				Eventually(container).Should(BeAvailable())
+				Eventually(container).Should(Serve(ContainSubstring("Hello, World!")))
 
-				response, err := http.Get(fmt.Sprintf("http://localhost:%s", container.HostPort("8080")))
-				Expect(err).NotTo(HaveOccurred())
-				defer response.Body.Close()
-
-				Expect(response.StatusCode).To(Equal(http.StatusOK))
-
-				content, err := ioutil.ReadAll(response.Body)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(string(content)).To(ContainSubstring("Hello, World!"))
-
-				cLogs := func() fmt.Stringer {
+				cLogs := func() string {
 					containerLogs, err := docker.Container.Logs.Execute(container.ID)
 					Expect(err).NotTo(HaveOccurred())
-					return containerLogs
+					return containerLogs.String()
 				}
 
 				Eventually(cLogs).Should(ContainSubstring("prehello"))

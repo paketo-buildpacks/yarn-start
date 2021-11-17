@@ -2,7 +2,6 @@ package yarnstart_test
 
 import (
 	"errors"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -26,7 +25,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 
 	it.Before(func() {
 		var err error
-		workingDir, err = ioutil.TempDir("", "working-dir")
+		workingDir, err = os.MkdirTemp("", "working-dir")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(os.Mkdir(filepath.Join(workingDir, "custom"), os.ModePerm)).To(Succeed())
 
@@ -42,8 +41,9 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 
 	context("when there is a yarn.lock", func() {
 		it.Before(func() {
-			Expect(ioutil.WriteFile(filepath.Join(workingDir, "custom", "yarn.lock"), nil, 0644)).To(Succeed())
+			Expect(os.WriteFile(filepath.Join(workingDir, "custom", "yarn.lock"), nil, 0600)).To(Succeed())
 		})
+
 		it("detects", func() {
 			result, err := detect(packit.DetectContext{
 				WorkingDir: workingDir,
@@ -161,7 +161,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 
 		context("when BP_LIVE_RELOAD_ENABLED is set to an invalid value", func() {
 			it.Before(func() {
-				Expect(ioutil.WriteFile(filepath.Join(workingDir, "custom", "yarn.lock"), nil, 0644)).To(Succeed())
+				Expect(os.WriteFile(filepath.Join(workingDir, "custom", "yarn.lock"), nil, 0600)).To(Succeed())
 				os.Setenv("BP_LIVE_RELOAD_ENABLED", "not-a-bool")
 			})
 

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -34,23 +33,23 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 	it.Before(func() {
 		var err error
-		layersDir, err = ioutil.TempDir("", "layers")
+		layersDir, err = os.MkdirTemp("", "layers")
 		Expect(err).NotTo(HaveOccurred())
 
-		cnbDir, err = ioutil.TempDir("", "cnb")
+		cnbDir, err = os.MkdirTemp("", "cnb")
 		Expect(err).NotTo(HaveOccurred())
 
-		workingDir, err = ioutil.TempDir("", "working-dir")
+		workingDir, err = os.MkdirTemp("", "working-dir")
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(os.Mkdir(filepath.Join(workingDir, "some-project-dir"), os.ModePerm)).To(Succeed())
-		err = ioutil.WriteFile(filepath.Join(workingDir, "some-project-dir", "package.json"), []byte(`{
+		err = os.WriteFile(filepath.Join(workingDir, "some-project-dir", "package.json"), []byte(`{
 			"scripts": {
 				"prestart": "some-prestart-command",
 				"start": "some-start-command",
 				"poststart": "some-poststart-command"
 			}
-		}`), 0644)
+		}`), 0600)
 		Expect(err).NotTo(HaveOccurred())
 
 		buffer = bytes.NewBuffer(nil)
@@ -85,14 +84,12 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(result).To(Equal(packit.BuildResult{
-			Plan: packit.BuildpackPlan{
-				Entries: []packit.BuildpackPlanEntry{},
-			},
 			Launch: packit.LaunchMetadata{
 				Processes: []packit.Process{
 					{
 						Type:    "web",
 						Command: "cd some-project-dir && some-prestart-command && some-start-command && some-poststart-command",
+						Default: true,
 					},
 				},
 			},
@@ -137,6 +134,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 						fmt.Sprintf("--ignore %s/some-project-dir/node_modules", workingDir),
 						`"cd some-project-dir && some-prestart-command && some-start-command && some-poststart-command"`,
 					}, " "),
+					Default: true,
 				},
 				{
 					Type:    "no-reload",
@@ -149,12 +147,12 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 	context("when the package.json does not include a prestart command", func() {
 		it.Before(func() {
-			err := ioutil.WriteFile(filepath.Join(workingDir, "some-project-dir", "package.json"), []byte(`{
+			err := os.WriteFile(filepath.Join(workingDir, "some-project-dir", "package.json"), []byte(`{
 				"scripts": {
 					"start": "some-start-command",
 					"poststart": "some-poststart-command"
 				}
-			}`), 0644)
+			}`), 0600)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -175,14 +173,12 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(result).To(Equal(packit.BuildResult{
-				Plan: packit.BuildpackPlan{
-					Entries: []packit.BuildpackPlanEntry{},
-				},
 				Launch: packit.LaunchMetadata{
 					Processes: []packit.Process{
 						{
 							Type:    "web",
 							Command: "cd some-project-dir && some-start-command && some-poststart-command",
+							Default: true,
 						},
 					}},
 			}))
@@ -191,12 +187,12 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 	context("when the package.json does not include a poststart command", func() {
 		it.Before(func() {
-			err := ioutil.WriteFile(filepath.Join(workingDir, "some-project-dir", "package.json"), []byte(`{
+			err := os.WriteFile(filepath.Join(workingDir, "some-project-dir", "package.json"), []byte(`{
 				"scripts": {
 					"prestart": "some-prestart-command",
 					"start": "some-start-command"
 				}
-			}`), 0644)
+			}`), 0600)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -217,14 +213,12 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(result).To(Equal(packit.BuildResult{
-				Plan: packit.BuildpackPlan{
-					Entries: []packit.BuildpackPlanEntry{},
-				},
 				Launch: packit.LaunchMetadata{
 					Processes: []packit.Process{
 						{
 							Type:    "web",
 							Command: "cd some-project-dir && some-prestart-command && some-start-command",
+							Default: true,
 						},
 					},
 				},
@@ -234,12 +228,12 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 	context("when the package.json does not include a start command", func() {
 		it.Before(func() {
-			err := ioutil.WriteFile(filepath.Join(workingDir, "some-project-dir", "package.json"), []byte(`{
+			err := os.WriteFile(filepath.Join(workingDir, "some-project-dir", "package.json"), []byte(`{
 				"scripts": {
 					"prestart": "some-prestart-command",
 					"poststart": "some-poststart-command"
 				}
-			}`), 0644)
+			}`), 0600)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -260,14 +254,12 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(result).To(Equal(packit.BuildResult{
-				Plan: packit.BuildpackPlan{
-					Entries: []packit.BuildpackPlanEntry{},
-				},
 				Launch: packit.LaunchMetadata{
 					Processes: []packit.Process{
 						{
 							Type:    "web",
 							Command: "cd some-project-dir && some-prestart-command && node server.js && some-poststart-command",
+							Default: true,
 						},
 					},
 				},
@@ -278,13 +270,13 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 	context("when the project-path env var is not set", func() {
 		it.Before(func() {
 			pathParser.GetCall.Returns.ProjectPath = ""
-			err := ioutil.WriteFile(filepath.Join(workingDir, "package.json"), []byte(`{
-			"scripts": {
-				"prestart": "some-prestart-command",
-				"start": "some-start-command",
-				"poststart": "some-poststart-command"
-			}
-		}`), 0644)
+			err := os.WriteFile(filepath.Join(workingDir, "package.json"), []byte(`{
+				"scripts": {
+					"prestart": "some-prestart-command",
+					"start": "some-start-command",
+					"poststart": "some-poststart-command"
+				}
+			}`), 0600)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -309,14 +301,12 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(result).To(Equal(packit.BuildResult{
-				Plan: packit.BuildpackPlan{
-					Entries: []packit.BuildpackPlanEntry{},
-				},
 				Launch: packit.LaunchMetadata{
 					Processes: []packit.Process{
 						{
 							Type:    "web",
 							Command: "some-prestart-command && some-start-command && some-poststart-command",
+							Default: true,
 						},
 					},
 				},
@@ -329,6 +319,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			it.Before(func() {
 				Expect(os.RemoveAll(filepath.Join(workingDir, "some-project-dir", "package.json"))).To(Succeed())
 			})
+
 			it("fails with the appropriate error", func() {
 				_, err := build(packit.BuildContext{
 					WorkingDir: workingDir,
@@ -349,8 +340,9 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 		context("when package.json is malformed", func() {
 			it.Before(func() {
-				Expect(ioutil.WriteFile(filepath.Join(workingDir, "some-project-dir", "package.json"), []byte("%%%"), os.ModePerm)).To(Succeed())
+				Expect(os.WriteFile(filepath.Join(workingDir, "some-project-dir", "package.json"), []byte("%%%"), os.ModePerm)).To(Succeed())
 			})
+
 			it("fails with the appropriate error", func() {
 				_, err := build(packit.BuildContext{
 					WorkingDir: workingDir,
