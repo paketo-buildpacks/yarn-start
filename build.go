@@ -62,6 +62,7 @@ func Build(pathParser PathParser, logger scribe.Logger) packit.BuildFunc {
 			{
 				Type:    "web",
 				Command: command,
+				Default: true,
 			},
 		}
 
@@ -83,6 +84,7 @@ func Build(pathParser PathParser, logger scribe.Logger) packit.BuildFunc {
 						fmt.Sprintf("--ignore %s", filepath.Join(context.WorkingDir, projectPath, "node_modules")),
 						fmt.Sprintf(`"%s"`, command),
 					}, " "),
+					Default: true,
 				},
 				{
 					Type:    "no-reload",
@@ -98,9 +100,6 @@ func Build(pathParser PathParser, logger scribe.Logger) packit.BuildFunc {
 		logger.Break()
 
 		return packit.BuildResult{
-			Plan: packit.BuildpackPlan{
-				Entries: []packit.BuildpackPlanEntry{},
-			},
 			Launch: packit.LaunchMetadata{
 				Processes: processes,
 			},

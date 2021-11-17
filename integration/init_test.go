@@ -46,6 +46,7 @@ var settings struct {
 
 func TestIntegration(t *testing.T) {
 	Expect := NewWithT(t).Expect
+	SetDefaultEventuallyTimeout(10 * time.Second)
 
 	root, err := filepath.Abs("./..")
 	Expect(err).ToNot(HaveOccurred())
@@ -85,8 +86,6 @@ func TestIntegration(t *testing.T) {
 	settings.Buildpacks.Watchexec.Online, err = buildpackStore.Get.
 		Execute(settings.Config.Watchexec)
 	Expect(err).NotTo(HaveOccurred())
-
-	SetDefaultEventuallyTimeout(5 * time.Second)
 
 	suite := spec.New("Integration", spec.Report(report.Terminal{}), spec.Parallel())
 	suite("CustomStartCmd", testCustomStartCmd)
