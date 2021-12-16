@@ -1,17 +1,23 @@
 module github.com/paketo-buildpacks/yarn-start
 
-go 1.14
+go 1.17
 
 require (
 	github.com/BurntSushi/toml v1.0.0
-	github.com/VividCortex/ewma v1.2.0 // indirect
-	github.com/fatih/color v1.13.0 // indirect
-	github.com/kr/pretty v0.3.0 // indirect
-	github.com/mattn/go-colorable v0.1.12 // indirect
-	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/onsi/gomega v1.18.1
 	github.com/paketo-buildpacks/occam v0.6.0
-	github.com/paketo-buildpacks/packit v1.3.1
-	github.com/rogpeppe/go-internal v1.8.0 // indirect
+	github.com/paketo-buildpacks/packit/v2 v2.1.0
 	github.com/sclevine/spec v1.4.0
+)
+
+require (
+	github.com/ForestEckhardt/freezer v0.0.10 // indirect
+	github.com/Masterminds/semver/v3 v3.1.1 // indirect
+	github.com/gabriel-vasile/mimetype v1.4.0 // indirect
+	github.com/oklog/ulid v1.3.1 // indirect
+	github.com/pelletier/go-toml v1.9.4 // indirect
+	github.com/ulikunitz/xz v0.5.10 // indirect
+	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
+	golang.org/x/text v0.3.7 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
