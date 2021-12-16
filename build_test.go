@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/paketo-buildpacks/packit"
-	"github.com/paketo-buildpacks/packit/scribe"
+	"github.com/paketo-buildpacks/packit/v2"
+	"github.com/paketo-buildpacks/packit/v2/scribe"
 	yarnstart "github.com/paketo-buildpacks/yarn-start"
 	"github.com/paketo-buildpacks/yarn-start/fakes"
 	"github.com/sclevine/spec"
