@@ -13,7 +13,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/onsi/gomega v1.17.0
-	github.com/paketo-buildpacks/occam v0.2.1
+	github.com/paketo-buildpacks/occam v0.3.0
 	github.com/paketo-buildpacks/packit v1.3.1
 	github.com/rogpeppe/go-internal v1.8.0 // indirect
 	github.com/sclevine/spec v1.4.0
