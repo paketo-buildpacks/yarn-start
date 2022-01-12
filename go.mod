@@ -3,7 +3,7 @@ module github.com/paketo-buildpacks/yarn-start
 go 1.14
 
 require (
-	github.com/BurntSushi/toml v0.4.1
+	github.com/BurntSushi/toml v1.0.0
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
