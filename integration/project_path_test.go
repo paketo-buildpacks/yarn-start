@@ -69,8 +69,8 @@ func testProjectPath(t *testing.T, context spec.G, it spec.S) {
 
 			Expect(logs).To(ContainLines(
 				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
-				"  Assigning launch processes",
-				`    web: cd hello_world_server && echo "prehello" && echo "starthello" && node server.js && echo "posthello"`,
+				"  Assigning launch processes:",
+				`    web (default): bash -c cd /workspace/hello_world_server && echo "prehello" && echo "starthello" && node server.js && echo "posthello"`,
 				"",
 			))
 
@@ -119,9 +119,9 @@ func testProjectPath(t *testing.T, context spec.G, it spec.S) {
 
 				Expect(logs).To(ContainLines(
 					MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
-					"  Assigning launch processes",
-					`    web: watchexec --restart --watch /workspace/hello_world_server --ignore /workspace/hello_world_server/package.json --ignore /workspace/hello_world_server/yarn.lock --ignore /workspace/hello_world_server/node_modules "cd hello_world_server && echo "prehello" && echo "starthello" && node server.js && echo "posthello""`,
-					`    no-reload: cd hello_world_server && echo "prehello" && echo "starthello" && node server.js && echo "posthello"`,
+					"  Assigning launch processes:",
+					`    web (default): watchexec --restart --shell none --watch /workspace/hello_world_server --ignore /workspace/hello_world_server/package.json --ignore /workspace/hello_world_server/yarn.lock --ignore /workspace/hello_world_server/node_modules -- bash -c cd /workspace/hello_world_server && echo "prehello" && echo "starthello" && node server.js && echo "posthello"`,
+					`    no-reload:     bash -c cd /workspace/hello_world_server && echo "prehello" && echo "starthello" && node server.js && echo "posthello"`,
 					"",
 				))
 

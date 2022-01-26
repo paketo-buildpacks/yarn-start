@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	logger := scribe.NewLogger(os.Stdout)
+	logger := scribe.NewEmitter(os.Stdout)
 	projectPathParser := yarnstart.NewProjectPathParser()
 
 	packit.Run(

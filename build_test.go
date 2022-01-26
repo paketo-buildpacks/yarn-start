@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/paketo-buildpacks/packit"
@@ -53,11 +52,11 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		Expect(err).NotTo(HaveOccurred())
 
 		buffer = bytes.NewBuffer(nil)
-		logger := scribe.NewLogger(buffer)
+		logger := scribe.NewEmitter(buffer)
 
 		pathParser = &fakes.PathParser{}
 
-		pathParser.GetCall.Returns.ProjectPath = "some-project-dir"
+		pathParser.GetCall.Returns.ProjectPath = filepath.Join(workingDir, "some-project-dir")
 		build = yarnstart.Build(pathParser, logger)
 	})
 
@@ -88,8 +87,13 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 				Processes: []packit.Process{
 					{
 						Type:    "web",
-						Command: "cd some-project-dir && some-prestart-command && some-start-command && some-poststart-command",
+						Command: "bash",
+						Args: []string{
+							"-c",
+							fmt.Sprintf("cd %s/some-project-dir && some-prestart-command && some-start-command && some-poststart-command", workingDir),
+						},
 						Default: true,
+						Direct:  true,
 					},
 				},
 			},
@@ -124,21 +128,30 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 			Expect(result.Launch.Processes).To(Equal([]packit.Process{
 				{
-					Type: "web",
-					Command: strings.Join([]string{
-						"watchexec",
+					Type:    "web",
+					Command: "watchexec",
+					Args: []string{
 						"--restart",
-						fmt.Sprintf("--watch %s/some-project-dir", workingDir),
-						fmt.Sprintf("--ignore %s/some-project-dir/package.json", workingDir),
-						fmt.Sprintf("--ignore %s/some-project-dir/yarn.lock", workingDir),
-						fmt.Sprintf("--ignore %s/some-project-dir/node_modules", workingDir),
-						`"cd some-project-dir && some-prestart-command && some-start-command && some-poststart-command"`,
-					}, " "),
+						"--shell", "none",
+						"--watch", filepath.Join(workingDir, "some-project-dir"),
+						"--ignore", filepath.Join(workingDir, "some-project-dir", "package.json"),
+						"--ignore", filepath.Join(workingDir, "some-project-dir", "yarn.lock"),
+						"--ignore", filepath.Join(workingDir, "some-project-dir", "node_modules"),
+						"--",
+						"bash", "-c",
+						fmt.Sprintf("cd %s/some-project-dir && some-prestart-command && some-start-command && some-poststart-command", workingDir),
+					},
 					Default: true,
+					Direct:  true,
 				},
 				{
 					Type:    "no-reload",
-					Command: "cd some-project-dir && some-prestart-command && some-start-command && some-poststart-command",
+					Command: "bash",
+					Args: []string{
+						"-c",
+						fmt.Sprintf("cd %s/some-project-dir && some-prestart-command && some-start-command && some-poststart-command", workingDir),
+					},
+					Direct: true,
 				},
 			}))
 			Expect(pathParser.GetCall.Receives.Path).To(Equal(workingDir))
@@ -177,8 +190,13 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Processes: []packit.Process{
 						{
 							Type:    "web",
-							Command: "cd some-project-dir && some-start-command && some-poststart-command",
+							Command: "bash",
+							Args: []string{
+								"-c",
+								fmt.Sprintf("cd %s/some-project-dir && some-start-command && some-poststart-command", workingDir),
+							},
 							Default: true,
+							Direct:  true,
 						},
 					}},
 			}))
@@ -217,8 +235,13 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Processes: []packit.Process{
 						{
 							Type:    "web",
-							Command: "cd some-project-dir && some-prestart-command && some-start-command",
+							Command: "bash",
+							Args: []string{
+								"-c",
+								fmt.Sprintf("cd %s/some-project-dir && some-prestart-command && some-start-command", workingDir),
+							},
 							Default: true,
+							Direct:  true,
 						},
 					},
 				},
@@ -258,8 +281,13 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Processes: []packit.Process{
 						{
 							Type:    "web",
-							Command: "cd some-project-dir && some-prestart-command && node server.js && some-poststart-command",
+							Command: "bash",
+							Args: []string{
+								"-c",
+								fmt.Sprintf("cd %[1]s/some-project-dir && some-prestart-command && node %[1]s/server.js && some-poststart-command", workingDir),
+							},
 							Default: true,
+							Direct:  true,
 						},
 					},
 				},
@@ -269,7 +297,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 	context("when the project-path env var is not set", func() {
 		it.Before(func() {
-			pathParser.GetCall.Returns.ProjectPath = ""
+			pathParser.GetCall.Returns.ProjectPath = workingDir
 			err := os.WriteFile(filepath.Join(workingDir, "package.json"), []byte(`{
 				"scripts": {
 					"prestart": "some-prestart-command",
@@ -305,8 +333,13 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					Processes: []packit.Process{
 						{
 							Type:    "web",
-							Command: "some-prestart-command && some-start-command && some-poststart-command",
+							Command: "bash",
+							Args: []string{
+								"-c",
+								"some-prestart-command && some-start-command && some-poststart-command",
+							},
 							Default: true,
+							Direct:  true,
 						},
 					},
 				},
