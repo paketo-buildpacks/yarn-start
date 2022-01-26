@@ -66,8 +66,8 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 
 			Expect(logs).To(ContainLines(
 				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
-				"  Assigning launch processes",
-				"    web: node server.js",
+				"  Assigning launch processes:",
+				"    web (default): node /workspace/server.js",
 				"",
 			))
 
@@ -106,9 +106,9 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 
 				Expect(logs).To(ContainLines(
 					MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
-					"  Assigning launch processes",
-					`    web: watchexec --restart --watch /workspace --ignore /workspace/package.json --ignore /workspace/yarn.lock --ignore /workspace/node_modules "node server.js"`,
-					"    no-reload: node server.js",
+					"  Assigning launch processes:",
+					`    web (default): watchexec --restart --shell none --watch /workspace --ignore /workspace/package.json --ignore /workspace/yarn.lock --ignore /workspace/node_modules -- node /workspace/server.js`,
+					"    no-reload:     node /workspace/server.js",
 					"",
 				))
 

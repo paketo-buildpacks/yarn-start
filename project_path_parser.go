@@ -22,7 +22,7 @@ func NewProjectPathParser() ProjectPathParser {
 func (p ProjectPathParser) Get(path string) (string, error) {
 	customProjPath := os.Getenv("BP_NODE_PROJECT_PATH")
 	if customProjPath == "" {
-		return "", nil
+		return path, nil
 	}
 
 	_, err := os.Stat(filepath.Join(path, customProjPath))
@@ -32,5 +32,5 @@ func (p ProjectPathParser) Get(path string) (string, error) {
 		}
 		return "", err
 	}
-	return customProjPath, nil
+	return filepath.Join(path, customProjPath), nil
 }

@@ -66,8 +66,8 @@ func testWorkspaces(t *testing.T, context spec.G, it spec.S) {
 
 			Expect(logs).To(ContainLines(
 				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
-				"  Assigning launch processes",
-				"    web: yarn workspace @sample/sample-app start",
+				"  Assigning launch processes:",
+				"    web (default): bash -c yarn workspace @sample/sample-app start",
 				"",
 			))
 
