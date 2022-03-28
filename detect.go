@@ -14,6 +14,9 @@ type PathParser interface {
 	Get(path string) (projectPath string, err error)
 }
 
+// NoStartScriptError indicates that the targeted project does no have a start command in their package.json
+const NoStartScriptError = "no start script in package.json"
+
 func Detect(projectPathParser PathParser) packit.DetectFunc {
 	return func(context packit.DetectContext) (packit.DetectResult, error) {
 		projectPath, err := projectPathParser.Get(context.WorkingDir)
@@ -27,6 +30,15 @@ func Detect(projectPathParser PathParser) packit.DetectFunc {
 				return packit.DetectResult{}, packit.Fail
 			}
 			return packit.DetectResult{}, fmt.Errorf("failed to stat yarn.lock: %w", err)
+		}
+
+		var pkg *PackageJson
+		if pkg, err = NewPackageJsonFromPath(filepath.Join(projectPath, "package.json")); err != nil {
+			return packit.DetectResult{}, err
+		}
+
+		if !pkg.hasStartCommand() {
+			return packit.DetectResult{}, packit.Fail.WithMessage(NoStartScriptError)
 		}
 
 		requirements := []packit.BuildPlanRequirement{

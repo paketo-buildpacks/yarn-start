@@ -77,7 +77,7 @@ func testGracefulShutdown(t *testing.T, context spec.G, it spec.S) {
 			Expect(logs).To(ContainLines(
 				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
 				"  Assigning launch processes:",
-				"    web (default): node /workspace/server.js",
+				"    web (default): bash -c node server.js",
 				"",
 			))
 

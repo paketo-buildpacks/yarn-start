@@ -12,6 +12,7 @@ import (
 	"github.com/sclevine/spec"
 
 	. "github.com/onsi/gomega"
+	json "encoding/json"
 )
 
 func testDetect(t *testing.T, context spec.G, it spec.S) {
@@ -39,8 +40,17 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 		Expect(os.RemoveAll(workingDir)).To(Succeed())
 	})
 
-	context("when there is a yarn.lock", func() {
+	context("when there is a yarn.lock and a start script", func() {
 		it.Before(func() {
+			content := yarnstart.PackageJson{Scripts: yarnstart.PackageScripts{
+				Start: "node server.js",
+			}}
+
+			bytes, err := json.Marshal(content)
+			Expect(err).To(BeNil())
+
+			Expect(os.WriteFile(filepath.Join(workingDir, "custom", "package.json"), bytes, 0600)).To(Succeed())
+
 			Expect(os.WriteFile(filepath.Join(workingDir, "custom", "yarn.lock"), nil, 0600)).To(Succeed())
 		})
 
@@ -161,6 +171,16 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 
 		context("when BP_LIVE_RELOAD_ENABLED is set to an invalid value", func() {
 			it.Before(func() {
+				content := yarnstart.PackageJson{Scripts: yarnstart.PackageScripts{
+					Start: "node server.js",
+				}}
+
+				bytes, err := json.Marshal(content)
+				Expect(err).To(BeNil())
+
+				Expect(os.WriteFile(filepath.Join(workingDir, "custom", "package.json"), bytes, 0600)).To(Succeed())
+
+
 				Expect(os.WriteFile(filepath.Join(workingDir, "custom", "yarn.lock"), nil, 0600)).To(Succeed())
 				os.Setenv("BP_LIVE_RELOAD_ENABLED", "not-a-bool")
 			})
