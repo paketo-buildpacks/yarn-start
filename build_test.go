@@ -367,7 +367,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					},
 					Layers: packit.Layers{Path: layersDir},
 				})
-				Expect(err).To(MatchError(ContainSubstring(fmt.Sprintf("Unable to open package.json: open %s", filepath.Join(workingDir, "some-project-dir", "package.json")))))
+				Expect(err).To(MatchError(ContainSubstring(fmt.Sprintf("unable to open package.json: open %s", filepath.Join(workingDir, "some-project-dir", "package.json")))))
 			})
 		})
 
@@ -390,7 +390,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 					},
 					Layers: packit.Layers{Path: layersDir},
 				})
-				Expect(err).To(MatchError(ContainSubstring("Unable to decode package.json: invalid character")))
+				Expect(err).To(MatchError(ContainSubstring("unable to decode package.json: invalid character")))
 			})
 		})
 
