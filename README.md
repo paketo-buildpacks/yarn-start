@@ -1,4 +1,4 @@
-# Paketo Yarn Start Cloud Native Buildpack
+# Paketo Buildpack for Yarn Start Cloud Native
 
 ## `gcr.io/paketo-buildpacks/yarn-start`
 
