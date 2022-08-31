@@ -3,7 +3,7 @@ api = "0.7"
 [buildpack]
   homepage = "https://github.com/paketo-buildpacks/yarn-start"
   id = "paketo-buildpacks/yarn-start"
-  name = "Paketo Yarn Start Buildpack"
+  name = "Paketo Buildpack for Yarn Start"
 
   [[buildpack.licenses]]
     type = "Apache-2.0"
