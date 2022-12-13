@@ -65,7 +65,3 @@ the `BP_NODE_PROJECT_PATH` environment variable at build time either directly
 [`project.toml`
 file](https://github.com/buildpacks/spec/blob/main/extensions/project-descriptor.md).
 This could be useful if your app is a part of a monorepo.
-
-## `buildpack.yml` Configurations
-
-There are no extra configurations for this buildpack based on `buildpack.yml`.
