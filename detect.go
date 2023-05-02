@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/paketo-buildpacks/packit/v2"
+	"github.com/paketo-buildpacks/packit/v2/fs"
 )
 
 //go:generate faux --interface PathParser --output fakes/path_parser.go
@@ -24,12 +25,13 @@ func Detect(projectPathParser PathParser) packit.DetectFunc {
 			return packit.DetectResult{}, err
 		}
 
-		_, err = os.Stat(filepath.Join(projectPath, "yarn.lock"))
+		exists, err := fs.Exists(filepath.Join(projectPath, "yarn.lock"))
 		if err != nil {
-			if os.IsNotExist(err) {
-				return packit.DetectResult{}, packit.Fail
-			}
 			return packit.DetectResult{}, fmt.Errorf("failed to stat yarn.lock: %w", err)
+		}
+
+		if !exists {
+			return packit.DetectResult{}, packit.Fail.WithMessage(`no "yarn.lock" found in the project path %s`, projectPath)
 		}
 
 		var pkg *PackageJson
