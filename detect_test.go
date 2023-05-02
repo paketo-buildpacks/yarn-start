@@ -11,8 +11,9 @@ import (
 	"github.com/paketo-buildpacks/yarn-start/fakes"
 	"github.com/sclevine/spec"
 
-	. "github.com/onsi/gomega"
 	json "encoding/json"
+
+	. "github.com/onsi/gomega"
 )
 
 func testDetect(t *testing.T, context spec.G, it spec.S) {
@@ -134,7 +135,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 			_, err := detect(packit.DetectContext{
 				WorkingDir: workingDir,
 			})
-			Expect(err).To(MatchError(packit.Fail))
+			Expect(err).To(MatchError(packit.Fail.WithMessage(`no "yarn.lock" found in the project path %s`, filepath.Join(workingDir, "custom"))))
 		})
 	})
 
@@ -179,7 +180,6 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 				Expect(err).To(BeNil())
 
 				Expect(os.WriteFile(filepath.Join(workingDir, "custom", "package.json"), bytes, 0600)).To(Succeed())
-
 
 				Expect(os.WriteFile(filepath.Join(workingDir, "custom", "yarn.lock"), nil, 0600)).To(Succeed())
 				os.Setenv("BP_LIVE_RELOAD_ENABLED", "not-a-bool")
