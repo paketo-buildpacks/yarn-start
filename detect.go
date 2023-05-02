@@ -31,7 +31,7 @@ func Detect(projectPathParser PathParser) packit.DetectFunc {
 		}
 
 		if !exists {
-			return packit.DetectResult{}, packit.Fail.WithMessage(`no "yarn.lock" found in the project path %s`, projectPath)
+			return packit.DetectResult{}, packit.Fail.WithMessage("no 'yarn.lock' found in the project path %s", projectPath)
 		}
 
 		var pkg *PackageJson
