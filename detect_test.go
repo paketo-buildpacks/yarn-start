@@ -1,17 +1,13 @@
 package yarnstart_test
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/paketo-buildpacks/packit/v2"
 	yarnstart "github.com/paketo-buildpacks/yarn-start"
-	"github.com/paketo-buildpacks/yarn-start/fakes"
 	"github.com/sclevine/spec"
-
-	json "encoding/json"
 
 	. "github.com/onsi/gomega"
 )
@@ -20,9 +16,8 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 	var (
 		Expect = NewWithT(t).Expect
 
-		workingDir        string
-		projectPathParser *fakes.PathParser
-		detect            packit.DetectFunc
+		workingDir string
+		detect     packit.DetectFunc
 	)
 
 	it.Before(func() {
@@ -31,10 +26,9 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(os.Mkdir(filepath.Join(workingDir, "custom"), os.ModePerm)).To(Succeed())
 
-		projectPathParser = &fakes.PathParser{}
-		projectPathParser.GetCall.Returns.ProjectPath = filepath.Join(workingDir, "custom")
+		t.Setenv("BP_NODE_PROJECT_PATH", "custom")
 
-		detect = yarnstart.Detect(projectPathParser)
+		detect = yarnstart.Detect()
 	})
 
 	it.After(func() {
@@ -43,14 +37,11 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 
 	context("when there is a yarn.lock and a start script", func() {
 		it.Before(func() {
-			content := yarnstart.PackageJson{Scripts: yarnstart.PackageScripts{
-				Start: "node server.js",
-			}}
-
-			bytes, err := json.Marshal(content)
-			Expect(err).To(BeNil())
-
-			Expect(os.WriteFile(filepath.Join(workingDir, "custom", "package.json"), bytes, 0600)).To(Succeed())
+			Expect(os.WriteFile(filepath.Join(workingDir, "custom", "package.json"), []byte(`{
+				"scripts": {
+					"start": "node server.js"
+				}
+			}`), 0600)).To(Succeed())
 
 			Expect(os.WriteFile(filepath.Join(workingDir, "custom", "yarn.lock"), nil, 0600)).To(Succeed())
 		})
@@ -82,7 +73,6 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 					},
 				},
 			}))
-			Expect(projectPathParser.GetCall.Receives.Path).To(Equal(filepath.Join(workingDir)))
 		})
 
 		context("and BP_LIVE_RELOAD_ENABLED=true in the build environment", func() {
@@ -153,33 +143,30 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 				_, err := detect(packit.DetectContext{
 					WorkingDir: workingDir,
 				})
-				Expect(err).To(MatchError(ContainSubstring("failed to stat yarn.lock:")))
+				Expect(err).To(MatchError(ContainSubstring("permission denied")))
 			})
 		})
 
 		context("when the project path cannot be found", func() {
 			it.Before(func() {
-				projectPathParser.GetCall.Returns.Err = errors.New("couldn't find directory")
+				t.Setenv("BP_NODE_PROJECT_PATH", "does-not-exist")
 			})
 
 			it("returns an error", func() {
 				_, err := detect(packit.DetectContext{
 					WorkingDir: workingDir,
 				})
-				Expect(err).To(MatchError("couldn't find directory"))
+				Expect(err).To(MatchError(ContainSubstring("could not find project path")))
 			})
 		})
 
 		context("when BP_LIVE_RELOAD_ENABLED is set to an invalid value", func() {
 			it.Before(func() {
-				content := yarnstart.PackageJson{Scripts: yarnstart.PackageScripts{
-					Start: "node server.js",
-				}}
-
-				bytes, err := json.Marshal(content)
-				Expect(err).To(BeNil())
-
-				Expect(os.WriteFile(filepath.Join(workingDir, "custom", "package.json"), bytes, 0600)).To(Succeed())
+				Expect(os.WriteFile(filepath.Join(workingDir, "custom", "package.json"), []byte(`{
+					"scripts": {
+						"start": "node server.js"
+					}
+				}`), 0600)).To(Succeed())
 
 				Expect(os.WriteFile(filepath.Join(workingDir, "custom", "yarn.lock"), nil, 0600)).To(Succeed())
 				os.Setenv("BP_LIVE_RELOAD_ENABLED", "not-a-bool")
