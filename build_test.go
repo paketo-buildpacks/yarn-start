@@ -102,12 +102,8 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 	context("when BP_LIVE_RELOAD_ENABLED=true in the build environment", func() {
 		it.Before(func() {
-			os.Setenv("BP_LIVE_RELOAD_ENABLED", "true")
+			t.Setenv("BP_LIVE_RELOAD_ENABLED", "true")
 			t.Setenv("BP_NODE_PROJECT_PATH", "some-project-dir")
-		})
-
-		it.After(func() {
-			os.Unsetenv("BP_LIVE_RELOAD_ENABLED")
 		})
 
 		it("adds a reloadable start command that ignores package manager files and makes it the default", func() {
@@ -399,12 +395,8 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 		context("when BP_LIVE_RELOAD_ENABLED is set to an invalid value", func() {
 			it.Before(func() {
-				os.Setenv("BP_LIVE_RELOAD_ENABLED", "not-a-bool")
+				t.Setenv("BP_LIVE_RELOAD_ENABLED", "not-a-bool")
 				t.Setenv("BP_NODE_PROJECT_PATH", "some-project-dir")
-			})
-
-			it.After(func() {
-				os.Unsetenv("BP_LIVE_RELOAD_ENABLED")
 			})
 
 			it("returns an error", func() {

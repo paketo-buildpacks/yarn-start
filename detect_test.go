@@ -77,11 +77,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 
 		context("and BP_LIVE_RELOAD_ENABLED=true in the build environment", func() {
 			it.Before(func() {
-				os.Setenv("BP_LIVE_RELOAD_ENABLED", "true")
-			})
-
-			it.After(func() {
-				os.Unsetenv("BP_LIVE_RELOAD_ENABLED")
+				t.Setenv("BP_LIVE_RELOAD_ENABLED", "true")
 			})
 
 			it("requires watchexec at launch time", func() {
@@ -169,11 +165,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 				}`), 0600)).To(Succeed())
 
 				Expect(os.WriteFile(filepath.Join(workingDir, "custom", "yarn.lock"), nil, 0600)).To(Succeed())
-				os.Setenv("BP_LIVE_RELOAD_ENABLED", "not-a-bool")
-			})
-
-			it.After(func() {
-				os.Unsetenv("BP_LIVE_RELOAD_ENABLED")
+				t.Setenv("BP_LIVE_RELOAD_ENABLED", "not-a-bool")
 			})
 
 			it("returns an error", func() {
