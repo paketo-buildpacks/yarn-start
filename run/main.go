@@ -10,10 +10,9 @@ import (
 
 func main() {
 	logger := scribe.NewEmitter(os.Stdout).WithLevel(os.Getenv("BP_LOG_LEVEL"))
-	projectPathParser := yarnstart.NewProjectPathParser()
 
 	packit.Run(
-		yarnstart.Detect(projectPathParser),
-		yarnstart.Build(projectPathParser, logger),
+		yarnstart.Detect(),
+		yarnstart.Build(logger),
 	)
 }

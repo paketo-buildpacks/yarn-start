@@ -6,21 +6,17 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/paketo-buildpacks/libnodejs"
 	"github.com/paketo-buildpacks/packit/v2"
 	"github.com/paketo-buildpacks/packit/v2/fs"
 )
 
-//go:generate faux --interface PathParser --output fakes/path_parser.go
-type PathParser interface {
-	Get(path string) (projectPath string, err error)
-}
-
 // NoStartScriptError indicates that the targeted project does no have a start command in their package.json
 const NoStartScriptError = "no start script in package.json"
 
-func Detect(projectPathParser PathParser) packit.DetectFunc {
+func Detect() packit.DetectFunc {
 	return func(context packit.DetectContext) (packit.DetectResult, error) {
-		projectPath, err := projectPathParser.Get(context.WorkingDir)
+		projectPath, err := libnodejs.FindProjectPath(context.WorkingDir)
 		if err != nil {
 			return packit.DetectResult{}, err
 		}
@@ -34,12 +30,15 @@ func Detect(projectPathParser PathParser) packit.DetectFunc {
 			return packit.DetectResult{}, packit.Fail.WithMessage("no 'yarn.lock' found in the project path %s", projectPath)
 		}
 
-		var pkg *PackageJson
-		if pkg, err = NewPackageJsonFromPath(filepath.Join(projectPath, "package.json")); err != nil {
-			return packit.DetectResult{}, err
+		pkg, err := libnodejs.ParsePackageJSON(projectPath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return packit.DetectResult{}, packit.Fail.WithMessage("no 'package.json' found in project path %s", projectPath)
+			}
+			return packit.DetectResult{}, fmt.Errorf("failed to open package.json: %w", err)
 		}
 
-		if !pkg.hasStartCommand() {
+		if !pkg.HasStartScript() {
 			return packit.DetectResult{}, packit.Fail.WithMessage(NoStartScriptError)
 		}
 
