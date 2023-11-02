@@ -20,11 +20,19 @@ func testCustomStartCmd(t *testing.T, context spec.G, it spec.S) {
 
 		pack   occam.Pack
 		docker occam.Docker
+
+		pullPolicy       = "never"
+		extenderBuildStr = ""
 	)
 
 	it.Before(func() {
 		pack = occam.NewPack()
 		docker = occam.NewDocker()
+
+		if settings.Extensions.UbiNodejsExtension.Online != "" {
+			pullPolicy = "always"
+			extenderBuildStr = "[extender (build)] "
+		}
 	})
 
 	context("when building a container image with pack", func() {
@@ -56,21 +64,27 @@ func testCustomStartCmd(t *testing.T, context spec.G, it spec.S) {
 
 			var logs fmt.Stringer
 			image, logs, err = pack.WithNoColor().Build.
+				WithExtensions(
+					settings.Extensions.UbiNodejsExtension.Online,
+				).
 				WithBuildpacks(
 					settings.Buildpacks.NodeEngine.Online,
 					settings.Buildpacks.Yarn.Online,
 					settings.Buildpacks.YarnInstall.Online,
 					settings.Buildpacks.YarnStart.Online,
 				).
-				WithPullPolicy("never").
+				WithPullPolicy(pullPolicy).
 				Execute(name, source)
+
 			Expect(err).NotTo(HaveOccurred(), logs.String())
 
 			Expect(logs).To(ContainLines(
-				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
-				"  Assigning launch processes:",
-				`    web (default): bash -c echo "prestart" && echo "start" && node server.js && echo "poststart"`,
-				"",
+				MatchRegexp(fmt.Sprintf(`%s%s \d+\.\d+\.\d+`, extenderBuildStr, settings.Buildpack.Name)),
+			))
+			Expect(logs).To(ContainLines(
+				extenderBuildStr+"  Assigning launch processes:",
+				extenderBuildStr+`    web (default): bash -c echo "prestart" && echo "start" && node server.js && echo "poststart"`,
+				extenderBuildStr+"",
 			))
 
 			container, err = docker.Container.Run.
@@ -101,6 +115,9 @@ func testCustomStartCmd(t *testing.T, context spec.G, it spec.S) {
 
 				var logs fmt.Stringer
 				image, logs, err = pack.WithNoColor().Build.
+					WithExtensions(
+						settings.Extensions.UbiNodejsExtension.Online,
+					).
 					WithBuildpacks(
 						settings.Buildpacks.Watchexec.Online,
 						settings.Buildpacks.NodeEngine.Online,
@@ -111,16 +128,17 @@ func testCustomStartCmd(t *testing.T, context spec.G, it spec.S) {
 					WithEnv(map[string]string{
 						"BP_LIVE_RELOAD_ENABLED": "true",
 					}).
-					WithPullPolicy("never").
+					WithPullPolicy(pullPolicy).
 					Execute(name, source)
 				Expect(err).NotTo(HaveOccurred(), logs.String())
 
 				Expect(logs).To(ContainLines(
-					MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
-					"  Assigning launch processes:",
-					`    web (default): watchexec --restart --shell none --watch /workspace --ignore /workspace/package.json --ignore /workspace/yarn.lock --ignore /workspace/node_modules -- bash -c echo "prestart" && echo "start" && node server.js && echo "poststart"`,
-					`    no-reload:     bash -c echo "prestart" && echo "start" && node server.js && echo "poststart"`,
-					"",
+					MatchRegexp(fmt.Sprintf(`%s%s \d+\.\d+\.\d+`, extenderBuildStr, settings.Buildpack.Name))))
+				Expect(logs).To(ContainLines(
+					extenderBuildStr+"  Assigning launch processes:",
+					extenderBuildStr+`    web (default): watchexec --restart --shell none --watch /workspace --ignore /workspace/package.json --ignore /workspace/yarn.lock --ignore /workspace/node_modules -- bash -c echo "prestart" && echo "start" && node server.js && echo "poststart"`,
+					extenderBuildStr+`    no-reload:     bash -c echo "prestart" && echo "start" && node server.js && echo "poststart"`,
+					extenderBuildStr+"",
 				))
 
 				container, err = docker.Container.Run.

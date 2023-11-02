@@ -20,11 +20,19 @@ func testProjectPath(t *testing.T, context spec.G, it spec.S) {
 
 		pack   occam.Pack
 		docker occam.Docker
+
+		pullPolicy       = "never"
+		extenderBuildStr = ""
 	)
 
 	it.Before(func() {
 		pack = occam.NewPack()
 		docker = occam.NewDocker()
+
+		if settings.Extensions.UbiNodejsExtension.Online != "" {
+			pullPolicy = "always"
+			extenderBuildStr = "[extender (build)] "
+		}
 	})
 
 	context("when building an app with a custom project path set", func() {
@@ -56,22 +64,27 @@ func testProjectPath(t *testing.T, context spec.G, it spec.S) {
 
 			var logs fmt.Stringer
 			image, logs, err = pack.WithNoColor().Build.
+				WithExtensions(
+					settings.Extensions.UbiNodejsExtension.Online,
+				).
 				WithBuildpacks(
 					settings.Buildpacks.NodeEngine.Online,
 					settings.Buildpacks.Yarn.Online,
 					settings.Buildpacks.YarnInstall.Online,
 					settings.Buildpacks.YarnStart.Online,
 				).
-				WithPullPolicy("never").
+				WithPullPolicy(pullPolicy).
 				WithEnv(map[string]string{"BP_NODE_PROJECT_PATH": "hello_world_server"}).
 				Execute(name, source)
 			Expect(err).NotTo(HaveOccurred(), logs.String())
 
 			Expect(logs).To(ContainLines(
-				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
-				"  Assigning launch processes:",
-				`    web (default): bash -c cd /workspace/hello_world_server && echo "prehello" && echo "starthello" && node server.js && echo "posthello"`,
-				"",
+				MatchRegexp(fmt.Sprintf(`%s%s \d+\.\d+\.\d+`, extenderBuildStr, settings.Buildpack.Name))))
+
+			Expect(logs).To(ContainLines(
+				extenderBuildStr+"  Assigning launch processes:",
+				extenderBuildStr+`    web (default): bash -c cd /workspace/hello_world_server && echo "prehello" && echo "starthello" && node server.js && echo "posthello"`,
+				extenderBuildStr+"",
 			))
 
 			container, err = docker.Container.Run.
@@ -102,6 +115,9 @@ func testProjectPath(t *testing.T, context spec.G, it spec.S) {
 
 				var logs fmt.Stringer
 				image, logs, err = pack.WithNoColor().Build.
+					WithExtensions(
+						settings.Extensions.UbiNodejsExtension.Online,
+					).
 					WithBuildpacks(
 						settings.Buildpacks.Watchexec.Online,
 						settings.Buildpacks.NodeEngine.Online,
@@ -109,7 +125,7 @@ func testProjectPath(t *testing.T, context spec.G, it spec.S) {
 						settings.Buildpacks.YarnInstall.Online,
 						settings.Buildpacks.YarnStart.Online,
 					).
-					WithPullPolicy("never").
+					WithPullPolicy(pullPolicy).
 					WithEnv(map[string]string{
 						"BP_NODE_PROJECT_PATH":   "hello_world_server",
 						"BP_LIVE_RELOAD_ENABLED": "true",
@@ -118,11 +134,13 @@ func testProjectPath(t *testing.T, context spec.G, it spec.S) {
 				Expect(err).NotTo(HaveOccurred(), logs.String())
 
 				Expect(logs).To(ContainLines(
-					MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
-					"  Assigning launch processes:",
-					`    web (default): watchexec --restart --shell none --watch /workspace/hello_world_server --ignore /workspace/hello_world_server/package.json --ignore /workspace/hello_world_server/yarn.lock --ignore /workspace/hello_world_server/node_modules -- bash -c cd /workspace/hello_world_server && echo "prehello" && echo "starthello" && node server.js && echo "posthello"`,
-					`    no-reload:     bash -c cd /workspace/hello_world_server && echo "prehello" && echo "starthello" && node server.js && echo "posthello"`,
-					"",
+					MatchRegexp(fmt.Sprintf(`%s%s \d+\.\d+\.\d+`, extenderBuildStr, settings.Buildpack.Name))))
+
+				Expect(logs).To(ContainLines(
+					extenderBuildStr+"  Assigning launch processes:",
+					extenderBuildStr+`    web (default): watchexec --restart --shell none --watch /workspace/hello_world_server --ignore /workspace/hello_world_server/package.json --ignore /workspace/hello_world_server/yarn.lock --ignore /workspace/hello_world_server/node_modules -- bash -c cd /workspace/hello_world_server && echo "prehello" && echo "starthello" && node server.js && echo "posthello"`,
+					extenderBuildStr+`    no-reload:     bash -c cd /workspace/hello_world_server && echo "prehello" && echo "starthello" && node server.js && echo "posthello"`,
+					extenderBuildStr+"",
 				))
 
 				container, err = docker.Container.Run.
