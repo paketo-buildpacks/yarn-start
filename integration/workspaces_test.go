@@ -19,11 +19,19 @@ func testWorkspaces(t *testing.T, context spec.G, it spec.S) {
 		Eventually = NewWithT(t).Eventually
 		pack       occam.Pack
 		docker     occam.Docker
+
+		pullPolicy       = "never"
+		extenderBuildStr = ""
 	)
 
 	it.Before(func() {
 		pack = occam.NewPack()
 		docker = occam.NewDocker()
+
+		if settings.Extensions.UbiNodejsExtension.Online != "" {
+			pullPolicy = "always"
+			extenderBuildStr = "[extender (build)] "
+		}
 	})
 
 	context("when building a container image with pack", func() {
@@ -54,7 +62,10 @@ func testWorkspaces(t *testing.T, context spec.G, it spec.S) {
 
 			var logs fmt.Stringer
 			image, logs, err = pack.WithNoColor().Build.
-				WithPullPolicy("never").
+				WithPullPolicy(pullPolicy).
+				WithExtensions(
+					settings.Extensions.UbiNodejsExtension.Online,
+				).
 				WithBuildpacks(
 					settings.Buildpacks.NodeEngine.Online,
 					settings.Buildpacks.Yarn.Online,
@@ -65,10 +76,12 @@ func testWorkspaces(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred(), logs.String())
 
 			Expect(logs).To(ContainLines(
-				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
-				"  Assigning launch processes:",
-				"    web (default): bash -c yarn workspace @sample/sample-app start",
-				"",
+				MatchRegexp(fmt.Sprintf(`%s%s \d+\.\d+\.\d+`, extenderBuildStr, settings.Buildpack.Name))))
+
+			Expect(logs).To(ContainLines(
+				extenderBuildStr+"  Assigning launch processes:",
+				extenderBuildStr+"    web (default): bash -c yarn workspace @sample/sample-app start",
+				extenderBuildStr+"",
 			))
 
 			container, err = docker.Container.Run.

@@ -19,11 +19,19 @@ func testGracefulShutdown(t *testing.T, context spec.G, it spec.S) {
 		Eventually = NewWithT(t).Eventually
 		pack       occam.Pack
 		docker     occam.Docker
+
+		pullPolicy       = "never"
+		extenderBuildStr = ""
 	)
 
 	it.Before(func() {
 		pack = occam.NewPack()
 		docker = occam.NewDocker()
+
+		if settings.Extensions.UbiNodejsExtension.Online != "" {
+			pullPolicy = "always"
+			extenderBuildStr = "[extender (build)] "
+		}
 	})
 
 	context("when building an image from an app that has a SIGTERM handler", func() {
@@ -54,13 +62,16 @@ func testGracefulShutdown(t *testing.T, context spec.G, it spec.S) {
 
 			var logs fmt.Stringer
 			image, logs, err = pack.WithNoColor().Build.
+				WithExtensions(
+					settings.Extensions.UbiNodejsExtension.Online,
+				).
 				WithBuildpacks(
 					settings.Buildpacks.NodeEngine.Online,
 					settings.Buildpacks.Yarn.Online,
 					settings.Buildpacks.YarnInstall.Online,
 					settings.Buildpacks.YarnStart.Online,
 				).
-				WithPullPolicy("never").
+				WithPullPolicy(pullPolicy).
 				Execute(name, source)
 			Expect(err).NotTo(HaveOccurred(), logs.String())
 
@@ -75,10 +86,12 @@ func testGracefulShutdown(t *testing.T, context spec.G, it spec.S) {
 			Eventually(container).Should(Serve(ContainSubstring("Hello, World")))
 
 			Expect(logs).To(ContainLines(
-				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, settings.Buildpack.Name)),
-				"  Assigning launch processes:",
-				"    web (default): bash -c node server.js",
-				"",
+				MatchRegexp(fmt.Sprintf(`%s%s \d+\.\d+\.\d+`, extenderBuildStr, settings.Buildpack.Name))))
+
+			Expect(logs).To(ContainLines(
+				extenderBuildStr+"  Assigning launch processes:",
+				extenderBuildStr+"    web (default): bash -c node server.js",
+				extenderBuildStr+"",
 			))
 
 			Expect(docker.Container.Stop.Execute(container.ID)).To(Succeed())
