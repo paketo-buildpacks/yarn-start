@@ -10,6 +10,7 @@ import (
 	"github.com/BurntSushi/toml"
 	. "github.com/onsi/gomega"
 	"github.com/paketo-buildpacks/occam"
+	"github.com/paketo-buildpacks/occam/packagers"
 	"github.com/sclevine/spec"
 	"github.com/sclevine/spec/report"
 )
@@ -51,8 +52,6 @@ var settings struct {
 }
 
 func TestIntegration(t *testing.T) {
-	var docker = occam.NewDocker()
-
 	Expect := NewWithT(t).Expect
 	SetDefaultEventuallyTimeout(10 * time.Second)
 
@@ -85,6 +84,8 @@ func TestIntegration(t *testing.T) {
 		Expect(err).ToNot(HaveOccurred())
 	}
 
+	libpakBuildpackStore := occam.NewBuildpackStore().WithPackager(packagers.NewLibpak())
+
 	settings.Buildpacks.YarnStart.Online, err = buildpackStore.Get.
 		WithVersion("1.2.3").
 		Execute(root)
@@ -102,11 +103,9 @@ func TestIntegration(t *testing.T) {
 		Execute(settings.Config.YarnInstall)
 	Expect(err).NotTo(HaveOccurred())
 
-	settings.Buildpacks.Watchexec.Online = settings.Config.Watchexec
-	err = docker.Pull.Execute(settings.Buildpacks.Watchexec.Online)
-	if err != nil {
-		t.Fatalf("Failed to pull %s: %s", settings.Buildpacks.Watchexec.Online, err)
-	}
+	settings.Buildpacks.Watchexec.Online, err = libpakBuildpackStore.Get.
+		Execute(settings.Config.Watchexec)
+	Expect(err).NotTo(HaveOccurred())
 
 	suite := spec.New("Integration", spec.Report(report.Terminal{}), spec.Parallel())
 	suite("CustomStartCmd", testCustomStartCmd)
