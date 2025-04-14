@@ -1,6 +1,6 @@
 # Paketo Buildpack for Yarn Start
 
-## `gcr.io/paketo-buildpacks/yarn-start`
+## `docker.io/paketobuildpacks/yarn-start`
 
 The Yarn Start CNB sets the start command for the given application. The start
 command is generated from the contents of `package.json`. For example, given a
