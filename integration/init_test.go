@@ -84,7 +84,7 @@ func TestIntegration(t *testing.T) {
 		Expect(err).ToNot(HaveOccurred())
 	}
 
-	libpakBuildpackStore := occam.NewBuildpackStore().WithPackager(packagers.NewLibpak())
+	libpakBuildpackStore := occam.NewBuildpackStore().WithPackager(packagers.NewLibpakTools())
 
 	settings.Buildpacks.YarnStart.Online, err = buildpackStore.Get.
 		WithVersion("1.2.3").
