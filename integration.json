@@ -1,6 +1,7 @@
 {
   "builders": [
-    "paketobuildpacks/builder-ubi8-buildpackless-base:latest",
+    "paketobuildpacks/ubi-9-builder-buildpackless",
+    "paketobuildpacks/builder-ubi8-buildpackless-base",
     "paketobuildpacks/builder-jammy-buildpackless-base"
   ],
   "ubi-nodejs-extension": "github.com/paketo-buildpacks/ubi-nodejs-extension",
